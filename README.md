@@ -89,7 +89,7 @@ MCP Server 是跨客户端的稳定部分。把下面配置复制到 Trae 的 MC
 }
 ```
 
-完整示例见 `mcp-configs/trae.windows.json`。Trae 不同版本的配置入口和 `SKILL.md` 自动发现方式可能不同；如果版本支持项目级技能，将 `skill/project-context` 复制到项目的 `.trae/skills/project-context`，或通过 Trae 的技能/规则界面导入。即使不安装技能，只配置 MCP 也可以直接使用所有 Context Tool。
+完整示例见 `mcp-configs/trae.windows.json`。Trae 不同版本的配置入口和 `SKILL.md` 自动发现方式可能不同；如果版本支持项目级技能，将 `skill/project-context` 复制到项目的 `.trae/skills/project-context`，或通过 Trae 的技能/规则界面导入。若当前版本不识别 `SKILL.md`，将 `trae/project-context.rules.md` 复制到 Trae 的项目规则中即可。即使不安装技能，只配置 MCP 也可以直接使用所有 Context Tool。
 
 ## 使用方式
 
