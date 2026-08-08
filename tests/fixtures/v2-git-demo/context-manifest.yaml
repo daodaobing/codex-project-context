@@ -1,0 +1,10 @@
+project: V2 Git Demo
+modules:
+  database:
+    paths:
+      - src/db.py
+    keywords:
+      - db
+      - database
+    documents:
+      - docs/modules.md

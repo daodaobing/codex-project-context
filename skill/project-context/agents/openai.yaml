@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Context"
+  short_description: "Load task-specific project context before coding"
+  default_prompt: "Use $project-context to load only the project context relevant to this task before coding."

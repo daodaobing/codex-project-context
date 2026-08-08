@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "context_server": {
+      "command": "C:\\Users\\YOUR_USER\\.codex\\context-server\\.venv\\Scripts\\python.exe",
+      "args": [
+        "C:\\Users\\YOUR_USER\\.codex\\context-server\\server.py"
+      ]
+    }
+  }
+}

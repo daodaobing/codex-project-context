@@ -1,0 +1,109 @@
+{
+  "server_name": "codex-project-context",
+  "version": "1.0.0",
+  "index": {
+    "file": "index/project-index.json",
+    "max_docs_per_project": 200,
+    "max_summary_chars": 500,
+    "max_headings": 40,
+    "max_entry_chars": 4000,
+    "max_context_summary_chars": 1400,
+    "top_relevant_files": 6,
+    "top_recommended_modules": 4
+  },
+  "scan": {
+    "docs_dir": "docs",
+    "entry_files": ["AGENTS.md"],
+    "extra_entry_files": ["README.md"],
+    "preferred_docs": [
+      "architecture.md",
+      "modules.md",
+      "design-system.md",
+      "design.md",
+      "decisions.md",
+      "changelog.md",
+      "README.md"
+    ],
+    "doc_extensions": [".md", ".markdown"],
+    "skip_dir_names": [
+      ".git", "node_modules", ".gradle", ".idea", ".vscode", ".serena",
+      ".codex", ".agents", ".claude", ".cursor", ".secrets", ".next",
+      ".output", ".wrangler", ".turbo", ".venv", "venv", "__pycache__",
+      "target", "dist", "out", "output", "build", "release-credentials",
+      "paraglide", ".tanstack", ".playwright-cli", ".deploy-dryrun"
+    ],
+    "skip_dir_contains": ["release-v", "release-credentials"],
+    "max_file_bytes": 100000
+  },
+  "manifest": {
+    "file": "context-manifest.yaml"
+  },
+  "suggest": {
+    "max_candidates": 3
+  },
+  "change": {
+    "max_related_docs": 8,
+    "max_recommendations": 6
+  },
+  "bootstrap": {
+    "max_readme_chars": 600,
+    "max_src_entries": 30,
+    "max_pkg_deps": 15,
+    "max_pkg_scripts": 5,
+    "max_configs": 10
+  },
+  "skill": {
+    "roots": [
+      "~/.codex/skills",
+      "~/.agents/skills",
+      "~/.codex/skills/.system"
+    ],
+    "deprecated_suffixes": [".bak-en-20260723-134214"],
+    "max_list_limit": 500,
+    "max_recommendations": 5
+  },
+  "skill_rules": {
+    "debug":  { "label": "调试/排障", "keywords": ["调试", "排障", "报错", "失败", "异常", "debug", "bug"], "skills": ["ce-debug", "diagnosing-bugs"] },
+    "review": { "label": "代码审查", "keywords": ["审查", "review", "code review", "检查"], "skills": ["ce-code-review", "code-review"] },
+    "release": { "label": "发布/部署", "keywords": ["发布", "部署", "版本", "上线", "release", "deploy"], "skills": ["ce-commit-push-pr"] },
+    "git":   { "label": "提交/合并", "keywords": ["提交", "合并", "commit", "push", "merge", "pr"], "skills": ["ce-commit", "ce-commit-push-pr"] },
+    "docs":  { "label": "文档", "keywords": ["文档", "documentation", "readme"], "skills": ["neat-freak", "copy-editing"] }
+  },
+  "rules": {
+    "auth": {
+      "label": "登录 / 认证 / 用户",
+      "keywords": ["登录","登入","认证","鉴权","授权","auth","login","user","用户","账号","account","session","会话","token","权限","permission","password","密码","oauth","sso","device","设备","revoke","撤销","invite","邀请","referral","推荐"],
+      "categories": ["auth","user","session","account","security"]
+    },
+    "server_connection": {
+      "label": "服务器 / 连接 / SSH",
+      "keywords": ["server","服务器","ssh","连接","connection","remote","远程","port","端口","host","主机","tunnel","代理","proxy","credential","凭证","channel","通道"],
+      "categories": ["server","connection","ssh","remote","network"]
+    },
+    "database": {
+      "label": "数据库 / 数据模型",
+      "keywords": ["数据库","database","db","schema","sql","migration","迁移","orm","drizzle","room","query","查询","entitlement","权益","contract","契约","数据","data","模型","model"],
+      "categories": ["database","db","schema","data","contract"]
+    },
+    "ui_design": {
+      "label": "页面 / UI / 设计系统",
+      "keywords": ["页面","page","界面","ui","前端","frontend","样式","style","component","组件","设计","design","design-system","布局","layout","主题","theme","卡片","card","弹窗","dialog","modal","表单","form","按钮","button","颜色","color","字体","font","图标","icon"],
+      "categories": ["ui","design","frontend"]
+    },
+    "map_exploration": {
+      "label": "地图 / 迷雾 / 探索",
+      "keywords": ["地图","map","迷雾","fog","mask","overlay","覆盖物","角色","sprite","小人","消失","disappear","隐藏","hidden","marker","瓦片","tile","reveal","brush","擦除","探索","explore","exploration","记录","record","距离","distance","进度","progress","定位","location","position","gps","坐标","coordinate","移动","move","网格","grid","城市","city"],
+      "categories": ["map","overlay","location","sprite","exploration","record","grid"]
+    },
+    "release_ops": {
+      "label": "发布 / 部署 / 运维",
+      "keywords": ["发布","release","部署","deploy","上线","版本","version","打包","package","publish","渠道","channel","r2","cloudflare","wrangler","desktop","下载","download","验收","acceptance","staging","生产","production","环境","env","迁移","migration"],
+      "categories": ["release","deploy","operations","plans"]
+    },
+    "api_backend": {
+      "label": "接口 / API / 路由",
+      "keywords": ["接口","api","endpoint","路由","route","请求","request","响应","response","http","rest","rpc","webhook","backend","服务端","服务"],
+      "categories": ["api","contract","backend","server"]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "context_server": {
+      "command": "/home/YOUR_USER/.codex/context-server/.venv/bin/python",
+      "args": [
+        "/home/YOUR_USER/.codex/context-server/server.py"
+      ]
+    }
+  }
+}
