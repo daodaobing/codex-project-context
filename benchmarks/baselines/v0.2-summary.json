@@ -1,0 +1,65 @@
+{
+  "validation": {
+    "context_reduction": 0.894045,
+    "recall": 0.809524,
+    "file_reduction": 0.943023,
+    "precision": 0.428571,
+    "latency_ms": {
+      "samples": [
+        61.1328,
+        50.4776,
+        46.9659,
+        42.428,
+        41.0191,
+        13.985,
+        12.4262,
+        16.2907,
+        13.0814,
+        12.2472
+      ],
+      "median": 28.6549,
+      "p95": 61.1328
+    }
+  },
+  "definitions": {
+    "validation": {
+      "tasks_sha256": "7240b23dd178124c8b94e26ad42e3600468d84acf5ff43434dc731507aebd905",
+      "repos_sha256": "e5a1241cd18837e443359daeaa76f5ddd7b3dac132ff2e91fa656804c4de2eeb"
+    },
+    "diagnostic": {
+      "tasks_sha256": "389705e92cc76dd81b88bd3ba6abf1f00fe4df57a7774e336dd2ca7abd809ad5",
+      "repos_sha256": "74537da8b6487dab15a5bebf5fec77f9dfa16eeff6e4a28a0168866123b889f2"
+    }
+  },
+  "note": "All values are copied from the actual V0.2 benchmark summaries. Axios/Catch2 were used as a holdout during V0.2; their results have been inspected and are now treated as a validation set for V0.3.",
+  "source_run_id": "v0.2-diagnostic-2",
+  "baseline": "router-v0.2",
+  "diagnostic": {
+    "context_reduction": 0.613955,
+    "recall": 0.896552,
+    "file_reduction": 0.792727,
+    "precision": 0.684211,
+    "latency_ms": {
+      "samples": [
+        13.4704,
+        9.603,
+        10.5963,
+        10.8623,
+        11.9545,
+        5.8819,
+        7.2333,
+        6.5534,
+        6.0797,
+        8.5712,
+        2.9569,
+        2.8598,
+        3.4287,
+        2.9699,
+        2.7907
+      ],
+      "median": 6.5534,
+      "p95": 13.4704
+    }
+  },
+  "source_validation_run_id": "v0.2-validation-final"
+}

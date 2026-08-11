@@ -1,0 +1,50 @@
+{
+  "baseline": "baseline-v0.1",
+  "source_run_id": "20260811T041455Z",
+  "source_summary": "benchmarks/results/runs/20260811T041455Z/summary.json",
+  "definitions": {
+    "repos_sha256": "74537da8b6487dab15a5bebf5fec77f9dfa16eeff6e4a28a0168866123b889f2",
+    "tasks_sha256": "389705e92cc76dd81b88bd3ba6abf1f00fe4df57a7774e336dd2ca7abd809ad5"
+  },
+  "overall": {
+    "task_count": 15,
+    "full_context_chars": 2052490,
+    "selected_context_chars": 802514,
+    "context_reduction": 0.609005,
+    "file_reduction": 0.745455,
+    "required_doc_recall": 0.448276,
+    "precision": 0.442857,
+    "cold_scan_latency_ms": {
+      "median": 258.0361,
+      "p95": 343.1156
+    },
+    "cached_routing_latency_ms": {
+      "median": 1.0955,
+      "p95": 3.1666
+    }
+  },
+  "per_repository": {
+    "click": {
+      "tasks": 5,
+      "context_reduction": 0.870802,
+      "required_doc_recall": 0.076923,
+      "precision": 0.2,
+      "file_reduction": 0.842105
+    },
+    "uvicorn": {
+      "tasks": 5,
+      "context_reduction": 0.575047,
+      "required_doc_recall": 0.636364,
+      "precision": 0.5,
+      "file_reduction": 0.6
+    },
+    "gin": {
+      "tasks": 5,
+      "context_reduction": 0.0,
+      "required_doc_recall": 1.0,
+      "precision": 1.0,
+      "file_reduction": 0.0
+    }
+  },
+  "note": "All values are copied from the actual V0.1 benchmark summary; no Ground Truth or result values were changed. Latency is from the no-argument reproduction run and is machine-dependent."
+}

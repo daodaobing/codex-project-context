@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "dataset": "validation-v0.2",
+  "frozen": true,
+  "ground_truth_note": "Axios/Catch2 were originally used as a holdout during Router V0.2, but their results have now been inspected. They are therefore treated as a validation set for V0.3 and are not used as the final blind evaluation. Ground truth is frozen and must not be changed.",
+  "tasks": [
+    {
+      "id": "axios-h01",
+      "repository": "axios",
+      "kind": "debugging",
+      "task": "Investigate why an aborted Axios request is reported as a generic failure and distinguish AbortController cancellation from Axios error handling.",
+      "required_docs": [
+        "docs/pages/advanced/cancellation.md",
+        "docs/pages/advanced/error-handling.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/testing.md",
+        "docs/pages/advanced/api-reference.md"
+      ]
+    },
+    {
+      "id": "axios-h02",
+      "repository": "axios",
+      "kind": "feature",
+      "task": "Add authentication headers and request or response interceptors while keeping credentials scoped to an Axios instance.",
+      "required_docs": [
+        "docs/pages/advanced/authentication.md",
+        "docs/pages/advanced/interceptors.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/headers.md",
+        "docs/pages/advanced/config-defaults.md"
+      ]
+    },
+    {
+      "id": "axios-h03",
+      "repository": "axios",
+      "kind": "api",
+      "task": "Change Axios request defaults for baseURL, timeout, parameter serialization, and request body size limits.",
+      "required_docs": [
+        "docs/pages/advanced/request-config.md",
+        "docs/pages/advanced/config-defaults.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/api-reference.md",
+        "docs/pages/misc/security.md"
+      ]
+    },
+    {
+      "id": "axios-h04",
+      "repository": "axios",
+      "kind": "configuration",
+      "task": "Document a typed Axios client and safely narrow AxiosError values in TypeScript catch blocks.",
+      "required_docs": [
+        "docs/pages/advanced/type-script.md",
+        "docs/pages/advanced/api-reference.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/error-handling.md",
+        "docs/pages/getting-started/first-steps.md"
+      ]
+    },
+    {
+      "id": "axios-h05",
+      "repository": "axios",
+      "kind": "architecture",
+      "task": "Understand Axios adapter selection and fetch adapter lifecycle before adding a custom transport.",
+      "required_docs": [
+        "docs/pages/advanced/adapters.md",
+        "docs/pages/advanced/fetch-adapter.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/request-config.md",
+        "docs/pages/advanced/testing.md"
+      ]
+    },
+    {
+      "id": "catch2-h01",
+      "repository": "catch2",
+      "kind": "debugging",
+      "task": "Debug test diagnostics that are missing per-section logging and consult the FAQ for global setup and cleanup behavior.",
+      "required_docs": [
+        "docs/logging.md",
+        "docs/faq.md"
+      ],
+      "acceptable_docs": [
+        "docs/event-listeners.md",
+        "docs/test-cases-and-sections.md"
+      ]
+    },
+    {
+      "id": "catch2-h02",
+      "repository": "catch2",
+      "kind": "feature",
+      "task": "Add custom matchers and assertion macros for a new domain type while preserving failure diagnostics.",
+      "required_docs": [
+        "docs/matchers.md",
+        "docs/assertions.md"
+      ],
+      "acceptable_docs": [
+        "docs/other-macros.md",
+        "docs/tostring.md"
+      ]
+    },
+    {
+      "id": "catch2-h03",
+      "repository": "catch2",
+      "kind": "api",
+      "task": "Expose command-line reporter selection and custom reporter output for a continuous-integration test run.",
+      "required_docs": [
+        "docs/command-line.md",
+        "docs/reporters.md"
+      ],
+      "acceptable_docs": [
+        "docs/reporter-events.md",
+        "docs/configuration.md"
+      ]
+    },
+    {
+      "id": "catch2-h04",
+      "repository": "catch2",
+      "kind": "configuration",
+      "task": "Configure Catch2 CMake integration and compile-time options for a C++ test project.",
+      "required_docs": [
+        "docs/cmake-integration.md",
+        "docs/configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/contributing.md",
+        "docs/command-line.md"
+      ]
+    },
+    {
+      "id": "catch2-h05",
+      "repository": "catch2",
+      "kind": "architecture",
+      "task": "Understand Catch2 test cases, sections, fixtures, and generators before refactoring parameterized tests.",
+      "required_docs": [
+        "docs/test-cases-and-sections.md",
+        "docs/test-fixtures.md",
+        "docs/generators.md"
+      ],
+      "acceptable_docs": [
+        "docs/tutorial.md",
+        "docs/assertions.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "repositories": [
+    {
+      "id": "click",
+      "name": "pallets/click",
+      "language": "Python",
+      "url": "https://github.com/pallets/click.git",
+      "commit": "9c4dfdaebe0e6b2aabc566eb81f6f10eb5cd6ea1"
+    },
+    {
+      "id": "uvicorn",
+      "name": "encode/uvicorn",
+      "language": "Python",
+      "url": "https://github.com/encode/uvicorn.git",
+      "commit": "5c560dae6a87f6109d958c6154277f1dc727f704"
+    },
+    {
+      "id": "gin",
+      "name": "gin-gonic/gin",
+      "language": "Go",
+      "url": "https://github.com/gin-gonic/gin.git",
+      "commit": "34dac209ffb6ef85cc78c5d217bbb7ad001d68fd"
+    }
+  ]
+}

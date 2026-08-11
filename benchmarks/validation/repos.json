@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "dataset": "validation-v0.2",
+  "repositories": [
+    {
+      "id": "axios",
+      "name": "axios/axios",
+      "language": "JavaScript/TypeScript",
+      "url": "https://github.com/axios/axios.git",
+      "commit": "ba98559a7f5a18e531b5762387e5957bd281af3d"
+    },
+    {
+      "id": "catch2",
+      "name": "catchorg/Catch2",
+      "language": "C++",
+      "url": "https://github.com/catchorg/Catch2.git",
+      "commit": "0aeb818520028ca05cc2539ed242402ef7a7ae41"
+    }
+  ]
+}

@@ -121,6 +121,7 @@ class ProjectScanner:
             if not text:
                 continue
             title, headings = self._extract_headings(text)
+            title = self._title_or_fallback(title, rel)
             summary = self._make_summary(text, self.max_entry_chars)
             search = title + "\n" + " ".join(headings) + "\n" + summary
             entries.append({
@@ -166,6 +167,7 @@ class ProjectScanner:
                 rel = p.relative_to(root).as_posix()
                 seen.add(rel)
                 title, headings = self._extract_headings(text)
+                title = self._title_or_fallback(title, rel)
                 summary = self._make_summary(text, self.max_summary_chars)
                 search = title + "\n" + " ".join(headings) + "\n" + summary
                 role = role_overrides.get(rel) or doc_role(rel)
@@ -204,6 +206,7 @@ class ProjectScanner:
                 continue
             seen.add(safe)
             title, headings = self._extract_headings(text)
+            title = self._title_or_fallback(title, safe)
             summary = self._make_summary(text, self.max_summary_chars)
             search = title + "\n" + " ".join(headings) + "\n" + summary
             role = role_overrides.get(safe) or doc_role(safe)
@@ -473,6 +476,15 @@ class ProjectScanner:
             if len(headings) >= self.max_headings:
                 break
         return title, headings
+
+    @staticmethod
+    def _title_or_fallback(title: str | None, relative_path: str) -> str:
+        """Return a usable title even when Markdown has no H1 heading."""
+
+        if title and title.strip():
+            return title.strip()
+        stem = Path(relative_path).stem.strip()
+        return stem or relative_path
 
     def _make_summary(self, text: str, limit: int) -> str:
         parts: list[str] = []

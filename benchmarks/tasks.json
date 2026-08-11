@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "frozen": true,
+  "ground_truth_note": "The required and acceptable documentation paths were manually frozen from the pinned repository snapshots before benchmark execution. They are not generated from matcher output.",
+  "tasks": [
+    {
+      "id": "click-01",
+      "repository": "click",
+      "kind": "debugging",
+      "task": "Debug a Click command that rejects option values and inspect parameter types and exception handling.",
+      "required_docs": [
+        "docs/parameters.md",
+        "docs/parameter-types.md",
+        "docs/exceptions.md"
+      ],
+      "acceptable_docs": [
+        "docs/options.md",
+        "docs/command-line-reference.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "click-02",
+      "repository": "click",
+      "kind": "feature",
+      "task": "Add nested Click commands and groups while preserving the existing command invocation flow.",
+      "required_docs": [
+        "docs/commands-and-groups.md",
+        "docs/commands.md"
+      ],
+      "acceptable_docs": [
+        "docs/quickstart.md",
+        "docs/complex.md",
+        "docs/entry-points.md"
+      ]
+    },
+    {
+      "id": "click-03",
+      "repository": "click",
+      "kind": "api",
+      "task": "Add shell completion to a Click command and expose the completion behavior for users.",
+      "required_docs": [
+        "docs/shell-completion.md",
+        "docs/options.md"
+      ],
+      "acceptable_docs": [
+        "docs/commands-and-groups.md",
+        "docs/command-line-reference.md",
+        "docs/api.md"
+      ]
+    },
+    {
+      "id": "click-04",
+      "repository": "click",
+      "kind": "configuration",
+      "task": "Support file paths, prompts, and environment-backed options in a Click command.",
+      "required_docs": [
+        "docs/handling-files.md",
+        "docs/prompts.md",
+        "docs/options.md"
+      ],
+      "acceptable_docs": [
+        "docs/parameters.md",
+        "docs/quickstart.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "click-05",
+      "repository": "click",
+      "kind": "architecture",
+      "task": "Understand Click's standalone command lifecycle and extension points before changing a complex CLI.",
+      "required_docs": [
+        "docs/advanced.md",
+        "docs/standalone-apps.md",
+        "docs/extending-click.md"
+      ],
+      "acceptable_docs": [
+        "docs/design-opinions.md",
+        "docs/api.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "uvicorn-01",
+      "repository": "uvicorn",
+      "kind": "debugging",
+      "task": "Debug an ASGI lifespan failure and event-loop behavior during application startup and shutdown.",
+      "required_docs": [
+        "docs/concepts/lifespan.md",
+        "docs/concepts/event-loop.md"
+      ],
+      "acceptable_docs": [
+        "docs/server-behavior.md",
+        "docs/settings.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "uvicorn-02",
+      "repository": "uvicorn",
+      "kind": "feature",
+      "task": "Add WebSocket support and request logging behavior to an ASGI server deployment.",
+      "required_docs": [
+        "docs/concepts/websockets.md",
+        "docs/concepts/logging.md"
+      ],
+      "acceptable_docs": [
+        "docs/server-behavior.md",
+        "docs/settings.md",
+        "docs/concepts/asgi.md"
+      ]
+    },
+    {
+      "id": "uvicorn-03",
+      "repository": "uvicorn",
+      "kind": "api",
+      "task": "Change HTTP protocol selection and server settings for an ASGI application without breaking request handling.",
+      "required_docs": [
+        "docs/concepts/http-protocols.md",
+        "docs/settings.md"
+      ],
+      "acceptable_docs": [
+        "docs/server-behavior.md",
+        "docs/concepts/asgi.md",
+        "docs/index.md"
+      ]
+    },
+    {
+      "id": "uvicorn-04",
+      "repository": "uvicorn",
+      "kind": "configuration",
+      "task": "Configure Uvicorn from environment variables and a Docker deployment, including reload and worker settings.",
+      "required_docs": [
+        "docs/settings.md",
+        "docs/deployment/docker.md"
+      ],
+      "acceptable_docs": [
+        "docs/deployment/index.md",
+        "docs/installation.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "uvicorn-05",
+      "repository": "uvicorn",
+      "kind": "architecture",
+      "task": "Understand the ASGI server lifecycle and server behavior before changing the protocol or application integration.",
+      "required_docs": [
+        "docs/concepts/asgi.md",
+        "docs/server-behavior.md",
+        "docs/concepts/lifespan.md"
+      ],
+      "acceptable_docs": [
+        "docs/concepts/event-loop.md",
+        "docs/concepts/http-protocols.md",
+        "docs/index.md"
+      ]
+    },
+    {
+      "id": "gin-01",
+      "repository": "gin",
+      "kind": "debugging",
+      "task": "Debug a Gin route or middleware failure and verify how requests flow through the router.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "gin-02",
+      "repository": "gin",
+      "kind": "feature",
+      "task": "Add request binding and validation for a Gin endpoint while preserving JSON and form behavior.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "gin-03",
+      "repository": "gin",
+      "kind": "api",
+      "task": "Change Gin response rendering for JSON, HTML, or other formats without changing route semantics.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "gin-04",
+      "repository": "gin",
+      "kind": "configuration",
+      "task": "Configure Gin server behavior, proxy trust, and graceful shutdown for a production service.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "gin-05",
+      "repository": "gin",
+      "kind": "architecture",
+      "task": "Understand Gin's router, middleware, binding, and rendering modules before extending the framework.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    }
+  ]
+}

@@ -6,6 +6,8 @@ index/*.tmp
 tests/fixtures/**/.git/
 .codex/
 .serena/
+benchmarks/workspaces/
+benchmarks/results/
 *.local
 *.bak
 *.tmp
