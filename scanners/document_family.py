@@ -62,6 +62,39 @@ SW_ENGINEERING_ALIASES: dict[str, str] = {
     "docs": "documentation",
 }
 
+# Lightweight, generic document roles used for routing signals.  Only the
+# filename stem, directory segments, title, and headings are consulted; no
+# repository-specific feature names are mapped here.
+ROLE_OVERVIEW = {"overview", "index", "introduction", "getting-started", "readme"}
+ROLE_API = {"api", "reference", "endpoints", "endpoint", "interfaces", "interface"}
+ROLE_CONFIGURATION = {"configuration", "config", "settings", "options", "setup"}
+ROLE_TROUBLESHOOTING = {"faq", "troubleshooting", "errors", "error", "issues", "issue"}
+ROLE_ARCHITECTURE = {"architecture", "design", "concepts", "internals", "lifecycle"}
+ROLE_MIGRATION = {"migration", "upgrade", "migrating", "upgrading", "changelog"}
+ROLE_EXAMPLES = {"examples", "example", "tutorial", "tutorials", "guide", "guides"}
+ROLE_CONTRIBUTION = {"contribution", "contributing", "development", "dev"}
+ROLE_SECURITY = {"security", "authentication", "auth", "permissions", "authorization"}
+ROLE_DEPLOYMENT = {"deployment", "deploy", "install", "installation", "running"}
+
+# Task-intent keywords that map to a document role.  These are generic
+# software-maintenance intents, not repository-specific feature names.
+ROLE_INTENT_KEYWORDS: dict[str, set[str]] = {
+    "troubleshooting": {
+        "why",
+        "error",
+        "issue",
+        "unexpected",
+        "fails",
+        "fail",
+        "compatibility",
+        "troubleshoot",
+        "debug",
+    },
+    "api": {"api", "endpoint", "method", "interface", "reference", "extend"},
+    "configuration": {"config", "setting", "option", "configure", "configuration"},
+    "architecture": {"architecture", "lifecycle", "design", "internals", "flow"},
+}
+
 _CAMEL_BOUNDARY_RE = re.compile(r"([a-z0-9])([A-Z])")
 _TOKEN_RE = re.compile(r"[a-z0-9]+|[^\x00-\x7f]+", re.IGNORECASE)
 
@@ -111,6 +144,81 @@ def locale_of(path: str) -> str:
             return part
     return ""
 
+
+def _role_from_tokens(tokens: set[str], role_tokens: set[str]) -> bool:
+    """Return True when any token from the document is in the role's token set."""
+
+    return bool(role_tokens & tokens)
+
+
+def document_role(
+    path: str,
+    title: str = "",
+    headings: list[str] | None = None,
+) -> str:
+    """Return a lightweight, generic document role.
+
+    The role is derived only from the path, filename stem, title, and the
+    first few headings.  It never consults repository-specific feature names.
+    Returns one of: overview, api, configuration, troubleshooting, architecture,
+    migration, examples, contribution, security, deployment, or "other".
+    """
+
+    tokens: set[str] = set()
+    for part in str(path or "").replace("\\", "/").split("/"):
+        tokens.update(_split_filename_stem(part))
+    tokens.update(_split_filename_stem(str(title or "")))
+    for heading in (headings or [])[:5]:
+        tokens.update(_split_filename_stem(str(heading)))
+
+    # Order matters: more specific roles are checked before generic ones.
+    if _role_from_tokens(tokens, ROLE_API):
+        return "api"
+    if _role_from_tokens(tokens, ROLE_CONFIGURATION):
+        return "configuration"
+    if _role_from_tokens(tokens, ROLE_TROUBLESHOOTING):
+        return "troubleshooting"
+    if _role_from_tokens(tokens, ROLE_ARCHITECTURE):
+        return "architecture"
+    if _role_from_tokens(tokens, ROLE_MIGRATION):
+        return "migration"
+    if _role_from_tokens(tokens, ROLE_EXAMPLES):
+        return "examples"
+    if _role_from_tokens(tokens, ROLE_CONTRIBUTION):
+        return "contribution"
+    if _role_from_tokens(tokens, ROLE_SECURITY):
+        return "security"
+    if _role_from_tokens(tokens, ROLE_DEPLOYMENT):
+        return "deployment"
+    if _role_from_tokens(tokens, ROLE_OVERVIEW):
+        return "overview"
+    return "other"
+
+
+def role_from_task(task: str) -> str:
+    """Return the strongest generic role suggested by a task's intent words."""
+
+    return (roles_from_task(task) or [""])[0]
+
+
+def roles_from_task(task: str) -> list[str]:
+    """Return all generic roles suggested by a task's intent words.
+
+    A task such as "configure the API and debug why it fails" signals both
+    configuration and troubleshooting intent; returning only one role would
+    hide the other.  Roles are ordered by descending hit count so the
+    strongest signal comes first.
+    """
+
+    lowered = str(task or "").lower()
+    tokens = set(_split_filename_stem(lowered))
+    scored: list[tuple[int, str]] = []
+    for role, keywords in ROLE_INTENT_KEYWORDS.items():
+        hits = len(keywords & tokens)
+        if hits:
+            scored.append((hits, role))
+    scored.sort(key=lambda pair: (-pair[0], pair[1]))
+    return [role for _, role in scored]
 
 @staticmethod
 def _pluralize(token: str) -> str:

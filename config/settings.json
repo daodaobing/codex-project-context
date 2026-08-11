@@ -9,6 +9,8 @@
     "max_entry_chars": 4000,
     "max_context_summary_chars": 1400,
     "top_relevant_files": 6,
+    "max_relevant_files": 6,
+    "role_boost": 2.0,
     "top_recommended_modules": 4
   },
   "scan": {

@@ -234,7 +234,7 @@ class RegressionTests(unittest.TestCase):
         notes = " ".join(result["selection_notes"])
 
         self.assertIn("canonical_family=docs/request-config", notes)
-        self.assertIn("duplicate_family_skipped", notes)
+        self.assertIn("hard_dedup", notes)
 
 
 class TokenOverlapTests(unittest.TestCase):

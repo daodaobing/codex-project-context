@@ -6,16 +6,21 @@ import re
 from pathlib import PurePosixPath
 
 from scanners.document_family import (
+    LOCALE_SEGMENTS,
     alias_normalize,
     alias_similar,
     canonical_family,
+    document_role,
     locale_of,
+    role_from_task,
+    roles_from_task,
     token_overlap_ratio,
 )
 
 
 _CAMEL_BOUNDARY_RE = re.compile(r"([a-z0-9])([A-Z])")
 _TOKEN_RE = re.compile(r"[a-z0-9]+|[\u4e00-\u9fff]+", re.IGNORECASE)
+_LOCALE_SET = set(LOCALE_SEGMENTS)
 
 # 只移除语法性/任务模板词，保留领域名词（如 request、configuration、server）。
 _STOPWORDS = frozenset(
@@ -85,11 +90,22 @@ class ContextMatcher:
         self.fallback_files = max(1, int(idx.get("fallback_relevant_files", 2)))
         self.diversity_penalty = float(idx.get("diversity_penalty", 0.35))
         self.family_hard_cap = int(idx.get("family_hard_cap", 8))
+        self.role_boost = float(idx.get("role_boost", 1.0))
+        self.soft_diversity_floor = float(idx.get("soft_diversity_floor", 0.6))
+        self.role_coverage_floor = float(idx.get("role_coverage_floor", 2.0))
         self.top_modules = idx.get("top_recommended_modules", 4)
         self.max_summary_chars = idx.get("max_context_summary_chars", 1400)
         self.entry_bonus = float(idx.get("entry_file_bonus", 0.35))
 
-    def match(self, project: dict, task: str) -> dict:
+    def match(self, project: dict, task: str, *, trace: bool = False) -> dict:
+        """Return the routed context for a task.
+
+        ``trace=True`` additionally returns a ``trace`` list describing every
+        candidate document's score decomposition and selection decision.  The
+        public MCP API never enables trace, so the response shape is unchanged
+        for normal callers.
+        """
+
         result = self.analyze(project, task)
         # 知识域/模块仍可补充 manifest 声明文档，但权重低于内容匹配。
         docs_scored = list(result["docs"])
@@ -116,7 +132,9 @@ class ContextMatcher:
         boost_docs(result["modules"][: self.top_modules], 0.75)
         boost_docs(result["knowledge"][:4], 1.0)
         docs_scored.sort(key=lambda x: (-x[0], x[1].get("path", "")))
-        top, selection_notes = self._select_documents(docs_scored, task)
+        top, selection_notes, trace_rows = self._select_documents(
+            docs_scored, task, trace=trace
+        )
         relevant_files = [d["path"] for _, d, _ in top]
 
         recommended_read = [
@@ -133,7 +151,7 @@ class ContextMatcher:
                 if rel not in relevant_files:
                     relevant_files.append(rel)
 
-        return {
+        out = {
             "project": project.get("project", ""),
             "project_path": project.get("project_path", ""),
             "project_type": project.get("project_type"),
@@ -146,6 +164,14 @@ class ContextMatcher:
             "indexed_at": project.get("scanned_at", ""),
             "selection_notes": selection_notes,
         }
+        if trace:
+            out["trace"] = trace_rows
+        return out
+
+    def trace_match(self, project: dict, task: str) -> dict:
+        """Return the routed context plus a full per-document score trace."""
+
+        return self.match(project, task, trace=True)
 
     def analyze(self, project: dict, task: str) -> dict:
         """分析任务与文档/模块的匹配，保留 score/reasons 供诊断使用。"""
@@ -198,98 +224,280 @@ class ContextMatcher:
         )
         return total, result
 
-    def _select_documents(self, docs_scored, task: str):
-        """Diversity-aware selection: family dedupe, locale preference, penalty.
+    def _select_documents(self, docs_scored, task: str, *, trace: bool = False):
+        """V0.4 selection: hard dedup only for certain duplicates, then soft
+        diversity penalty, role coverage, dynamic threshold, and max cap.
 
-        V0.3 keeps the V0.2 score threshold and hard cap, then applies a
-        greedy pass that skips a second member of an already-selected canonical
-        family unless it is clearly a different role or a much stronger hit.
-        It also applies a light alias/token-overlap penalty to near-duplicate
-        topics so one family cannot occupy the whole budget.
+        Hard dedup is restricted to documents whose canonical family is
+        identical AND whose locale-free path is identical (i.e. locale
+        variants of the same document).  Parent/child documents such as
+        ``docs/formatter.md`` and ``docs/formatter/black.md`` are never
+        hard-deduped because they are different documents.  Near-duplicate
+        topics only receive a bounded soft penalty.
         """
 
         notes: list[str] = []
+        trace_rows: list[dict] = []
         if not docs_scored:
-            return [], notes
+            return [], notes, trace_rows
 
+        task_roles = roles_from_task(task) if task else []
+        task_role = task_roles[0] if task_roles else ""
         positive = [item for item in docs_scored if item[0] >= self.min_relevant_score]
         if positive:
             best_score = positive[0][0]
+            # V0.4: the relative-to-best floor saturates for very high best
+            # scores so a single outlier document cannot push out strong but
+            # slightly lower candidates (e.g. docs/formatter.md vs
+            # docs/formatter/black.md).  The absolute floor still applies.
+            relative_floor = self.relative_score_floor
+            if best_score > 10:
+                relative_floor = max(0.2, self.relative_score_floor * 10 / best_score)
             threshold = max(
                 self.min_relevant_score,
-                best_score * self.relative_score_floor,
+                best_score * relative_floor,
             )
-            candidates = [item for item in docs_scored if item[0] >= threshold]
+            # V0.4: a document whose generic role matches the task intent may
+            # enter the candidate pool at a higher absolute floor even when the
+            # relative-to-best threshold is higher.  This lets faq.md /
+            # api.md / configuration.md reach selection for intent words such
+            # as "why/fail/error" or "api/configure" without lowering the
+            # threshold for everyone.
+            candidates = []
+            for item in docs_scored:
+                score, doc, _ = item
+                if score >= threshold:
+                    candidates.append(item)
+                    continue
+                if task_roles and score >= self.min_relevant_score:
+                    doc_role = document_role(
+                        str(doc.get("path") or ""),
+                        doc.get("title", ""),
+                        doc.get("headings"),
+                    )
+                    if doc_role in task_roles:
+                        candidates.append(item)
+            # V0.4.1: a child document of an accepted candidate (same canonical
+            # family prefix, e.g. docs/formatter.md vs docs/formatter/black.md)
+            # may enter the pool at the absolute floor.  This is a generic
+            # section/subpage structure signal, not a repository-specific rule.
+            if candidates:
+                accepted_families = {
+                    canonical_family(str(doc.get("path") or ""))
+                    for _, doc, _ in candidates
+                }
+                accepted_paths = {id(item) for item in candidates}
+                for item in docs_scored:
+                    if id(item) in accepted_paths or item[0] < self.min_relevant_score:
+                        continue
+                    family = canonical_family(str(item[1].get("path") or ""))
+                    if any(
+                        family.startswith(f"{accepted}/") or accepted.startswith(f"{family}/")
+                        for accepted in accepted_families
+                    ):
+                        candidates.append(item)
+            candidates.sort(key=lambda x: (-x[0], x[1].get("path", "")))
         else:
             candidates = []
 
         if not candidates:
             # 没有明显命中时保留少量入口/最高分文档，避免返回全部文档。
             fallback = docs_scored[: min(self.fallback_files, self.max_files)]
-            return fallback, notes
+            if trace:
+                for score, doc, reasons in fallback:
+                    trace_rows.append(
+                        self._trace_row(
+                            doc,
+                            score,
+                            score,
+                            docs_scored.index((score, doc, reasons)),
+                            None,
+                            True,
+                            task_role,
+                            threshold,
+                            reasons,
+                            hard_duplicate=False,
+                            hard_duplicate_of=None,
+                            penalty=0.0,
+                        )
+                    )
+            return fallback, notes, trace_rows
 
-        selected: list[tuple[float, dict, list[str]]] = []
-        family_counts: dict[str, int] = {}
-        task_family = canonical_family(task) if task else ""
-        task_locale = locale_of(task)
-
+        # Pre-compute canonical family and locale-free path for every candidate.
+        enriched: list[dict] = []
         for item in candidates:
             score, doc, reasons = item
             path = str(doc.get("path") or "")
-            family = canonical_family(path)
             locale = locale_of(path)
+            family = canonical_family(path)
+            # Locale-free path: remove locale segments from the path.
+            parts = [p for p in path.replace("\\", "/").split("/") if p and p not in _LOCALE_SET]
+            locale_free = "/".join(parts)
+            enriched.append(
+                {
+                    "score": score,
+                    "doc": doc,
+                    "reasons": reasons,
+                    "path": path,
+                    "locale": locale,
+                    "family": family,
+                    "locale_free": locale_free,
+                    "rank_before": len(trace_rows) + 1,
+                }
+            )
 
-            # 1. Hard cap and family cap.
+        # 1. Remove exact/locale duplicates (hard dedup).  Only documents
+        # whose locale-free path is identical are considered duplicates.
+        best_by_locale_free: dict[str, dict] = {}
+        dropped: list[tuple[dict, dict]] = []  # (kept, dropped)
+        for row in enriched:
+            key = row["locale_free"]
+            existing = best_by_locale_free.get(key)
+            if existing is None or row["score"] > existing["score"]:
+                if existing is not None:
+                    dropped.append((row, existing))
+                best_by_locale_free[key] = row
+            else:
+                dropped.append((existing, row))
+        deduped = list(best_by_locale_free.values())
+        for kept, drop in dropped:
+            notes.append(
+                f"hard_dedup:{drop['path']}->{kept['path']}"
+            )
+            if trace:
+                trace_rows.append(
+                    self._trace_row(
+                        drop["doc"],
+                        drop["score"],
+                        drop["score"],
+                        drop["rank_before"],
+                        None,
+                        False,
+                        task_role,
+                        threshold,
+                        list(drop["reasons"]) + [f"hard_duplicate_of:{kept['path']}"],
+                        hard_duplicate=True,
+                        hard_duplicate_of=kept["path"],
+                        penalty=0.0,
+                    )
+                )
+
+        # 2. Sort by relevance (raw score).
+        deduped.sort(key=lambda r: (-r["score"], r["path"]))
+
+        # 3. Iterative selection with soft diversity penalty.
+        selected: list[tuple[float, dict, list[str]]] = []
+        selected_roles: set[str] = set()
+        for row in deduped:
             if len(selected) >= self.max_files:
                 notes.append(f"max_files reached: {self.max_files}")
                 break
-            if family and family_counts.get(family, 0) >= 1:
-                # A second member of an already-selected family is only taken
-                # when it is a much stronger hit or a different role.
-                if score >= best_score * 0.85 and doc.get("role") not in (
-                    "other",
-                    "",
-                    None,
-                ):
-                    family_counts[family] += 1
-                    selected.append(item)
-                    reasons.append(f"family_duplicate_allowed:role={doc.get('role', '')}")
-                    notes.append(f"duplicate_family_allowed:{family}")
-                else:
-                    reasons.append(f"duplicate_family_skipped:{family}")
-                    notes.append(f"duplicate_family_skipped:{family}")
-                continue
 
-            # 2. Locale preference: prefer the non-locale / English variant.
-            if task_locale and locale and locale != task_locale:
-                # Task explicitly targets another locale; keep that variant.
-                pass
-            elif family and not locale:
-                # No-locale original already selected; a later locale variant
-                # loses ground only through the normal score ordering.
-                pass
+            score = row["score"]
+            doc = row["doc"]
+            reasons = list(row["reasons"])
+            path = row["path"]
+            role = document_role(path, doc.get("title", ""), doc.get("headings"))
 
-            # 3. Light diversity penalty for near-duplicate topics.
+            # Role boost: a candidate whose role matches the task intent gets
+            # a small, bounded boost (never enough to overturn a strong hit).
+            role_hit = role in task_roles
+            if role_hit:
+                score += self.role_boost
+                reasons.append(f"role boost: {role}")
+
+            # Soft diversity penalty against already-selected documents.
             penalty = 0.0
             for _, selected_doc, _ in selected:
                 candidate_tokens = self._document_fields(doc)["all"]
                 selected_tokens = self._document_fields(selected_doc)["all"]
                 overlap = token_overlap_ratio(candidate_tokens, selected_tokens)
-                if overlap >= 0.6:
+                if overlap >= self.soft_diversity_floor:
                     penalty = max(penalty, self.diversity_penalty * overlap)
-            effective_score = score - penalty
+            final_score = score - penalty
 
-            family_counts.setdefault(family, 0)
-            family_counts[family] += 1
-            selected.append((effective_score, doc, reasons))
+            # Role coverage: if this candidate introduces a new role and is
+            # above the absolute floor, keep it even if slightly below the
+            # relative threshold.  The candidate pool already filtered weak
+            # role matches with the role-coverage floor.
+            coverage_exempt = (
+                role not in selected_roles
+                and role != "other"
+                and final_score >= self.min_relevant_score
+            )
+            if coverage_exempt:
+                threshold_used = self.min_relevant_score
+            else:
+                threshold_used = threshold
+
+            if final_score < threshold_used and not coverage_exempt:
+                if trace:
+                    trace_rows.append(
+                        self._trace_row(
+                            doc, row["score"], final_score, row["rank_before"],
+                            None, False, task_role, threshold_used, reasons,
+                            hard_duplicate=False, hard_duplicate_of=None,
+                            penalty=penalty,
+                        )
+                    )
+                continue
+
+            selected.append((final_score, doc, reasons))
+            selected_roles.add(role)
             if penalty:
                 reasons.append(f"diversity_penalty={penalty:g}")
                 notes.append(f"diversity_penalty={penalty:g}:{path}")
-            notes.append(f"canonical_family={family or '(root)'}")
+            if role_hit:
+                notes.append(f"role_boost={self.role_boost:g}:{path}")
+            notes.append(f"canonical_family={row['family'] or '(root)'}")
+            if trace:
+                trace_rows.append(
+                    self._trace_row(
+                        doc, row["score"], final_score, row["rank_before"],
+                        len(selected) - 1, True, task_role, threshold_used, reasons,
+                        hard_duplicate=False, hard_duplicate_of=None,
+                        penalty=penalty,
+                    )
+                )
 
         # Re-sort by effective score to honor the diversity-adjusted ranking.
         selected.sort(key=lambda x: (-x[0], x[1].get("path", "")))
-        return selected[: self.max_files], notes
+        return selected[: self.max_files], notes, trace_rows
+
+    def _trace_row(
+        self,
+        doc: dict,
+        raw_score: float,
+        final_score: float,
+        rank_before: int,
+        rank_after: int | None,
+        selected: bool,
+        task_role: str,
+        threshold: float,
+        reasons: list[str],
+        *,
+        hard_duplicate: bool,
+        hard_duplicate_of: str | None,
+        penalty: float,
+    ) -> dict:
+        path = str(doc.get("path") or "")
+        return {
+            "path": path,
+            "raw_score": round(raw_score, 4),
+            "final_score": round(final_score, 4),
+            "rank_before": rank_before,
+            "rank_after": rank_after,
+            "selected": selected,
+            "canonical_family": canonical_family(path),
+            "locale": locale_of(path),
+            "role": document_role(path, doc.get("title", ""), doc.get("headings")),
+            "task_role": task_role,
+            "hard_duplicate": hard_duplicate,
+            "hard_duplicate_of": hard_duplicate_of,
+            "similarity_penalty": round(penalty, 4),
+            "threshold": round(threshold, 4),
+            "reasons": list(reasons),
+        }
 
     def _collect_rule_hits(self, task_lower: str) -> dict:
         rule_hits = {}
@@ -310,6 +518,21 @@ class ContextMatcher:
         doc_cats = set(doc.get("categories", []))
         fields = self._document_fields(doc)
         task_set = set(task_tokens)
+
+        # V0.4: generic document role signal.  A task intent such as
+        # "why does it fail" maps to the troubleshooting role and gives a
+        # small, bounded boost to faq/troubleshooting docs.  No repository-
+        # specific names are consulted.
+        task_roles = roles_from_task(" ".join(task_tokens))
+        if task_roles:
+            doc_role = document_role(
+                str(doc.get("path") or ""),
+                doc.get("title", ""),
+                doc.get("headings"),
+            )
+            if doc_role in task_roles:
+                score += self.role_boost
+                reasons.append(f"role match: {doc_role}")
 
         filename_hits = sorted(task_set & set(fields["filename"]))
         if filename_hits:

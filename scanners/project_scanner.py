@@ -465,7 +465,22 @@ class ProjectScanner:
     def _extract_headings(self, text: str) -> tuple[str | None, list[str]]:
         title = None
         headings: list[str] = []
-        for line in text.splitlines():
+        lines = text.splitlines()
+        # YAML frontmatter: "title:" is the most reliable document title and
+        # must win over the first Markdown heading (which may be a section
+        # heading such as "Trailing end-of-line comments").
+        if lines and lines[0].strip() == "---":
+            for line in lines[1:]:
+                stripped = line.strip()
+                if stripped == "---":
+                    break
+                match = re.match(r"^title\s*:\s*(.+)$", stripped)
+                if match:
+                    candidate = match.group(1).strip().strip("\"'")
+                    if candidate:
+                        title = candidate
+                    break
+        for line in lines:
             s = line.strip()
             if s.startswith("#"):
                 h = re.sub(r"^#+\s*", "", s).strip()
