@@ -5,6 +5,7 @@ index/*.json
 index/*.tmp
 tests/fixtures/**/.git/
 .codex/
+.serena/
 *.local
 *.bak
 *.tmp

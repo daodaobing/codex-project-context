@@ -14,6 +14,8 @@ from .categories import categories_for
 from .categories import doc_role
 from .manifest import load_manifest
 from .manifest import declared_doc_paths
+from .safe_paths import resolve_safe_path
+from .safe_paths import safe_relative_path
 
 _FILE_EXT_RE = re.compile(
     r"\.(?:kt|kts|py|ts|tsx|js|jsx|java|go|rs|cs|swift|vue|svelte|md|markdown|sql|json)$", re.I
@@ -78,11 +80,13 @@ class ProjectScanner:
         role_overrides = {}
         for role, paths in (manifest or {}).get("documents", {}).items():
             for rel in paths:
-                role_overrides[rel.replace("\\", "/").lstrip("./")] = str(role)
+                safe = safe_relative_path(root, rel)
+                if safe is not None:
+                    role_overrides[safe] = str(role)
 
         docs, doc_texts = self._scan_docs(root, role_overrides, manifest)
         modules = self._collect_modules(root, entry_text, doc_texts, manifest)
-        knowledge_domains = self._manifest_knowledge_domains(manifest)
+        knowledge_domains = self._manifest_knowledge_domains(root, manifest)
 
         return {
             "project": name,
@@ -107,8 +111,11 @@ class ProjectScanner:
         entries: list[dict] = []
         texts: list[str] = []
         for fname in self.entry_files + self.extra_entry_files:
-            p = root / fname
-            if not p.is_file():
+            rel = safe_relative_path(root, fname)
+            if rel is None:
+                continue
+            p = resolve_safe_path(root, rel)
+            if p is None or not p.is_file():
                 continue
             text = self._read_text(p)
             if not text:
@@ -117,11 +124,11 @@ class ProjectScanner:
             summary = self._make_summary(text, self.max_entry_chars)
             search = title + "\n" + " ".join(headings) + "\n" + summary
             entries.append({
-                "path": fname,
-                "title": title or fname,
+                "path": rel,
+                "title": title or rel,
                 "headings": headings,
                 "summary": summary,
-                "categories": categories_for(fname, search),
+                "categories": categories_for(rel, search),
             })
             texts.append(text)
         return entries, "\n\n".join(texts)
@@ -148,9 +155,9 @@ class ProjectScanner:
         docs: list[dict] = []
         doc_texts: dict[str, str] = {}
         seen: set[str] = set()
-        docs_dir = root / self.docs_dir
-        if docs_dir.is_dir():
-            for p in self._walk(docs_dir):
+        docs_dir = resolve_safe_path(root, self.docs_dir)
+        if docs_dir is not None and docs_dir.is_dir():
+            for p in self._walk(root, docs_dir):
                 if p.suffix.lower() not in self.doc_extensions:
                     continue
                 text = self._read_text(p)
@@ -180,28 +187,33 @@ class ProjectScanner:
                     break
 
         # manifest 声明的文档（可能位于 docs/ 之外，如项目根目录）补扫
-        entry_names = set(self.entry_files + self.extra_entry_files)
+        entry_names = {
+            safe
+            for fname in self.entry_files + self.extra_entry_files
+            if (safe := safe_relative_path(root, fname)) is not None
+        }
         for rel in declared_doc_paths(manifest):
-            if rel in seen or rel in entry_names or len(docs) >= self.max_docs:
+            safe = safe_relative_path(root, rel)
+            if safe is None or safe in seen or safe in entry_names or len(docs) >= self.max_docs:
                 continue
-            p = root / rel
-            if not p.is_file() or p.suffix.lower() not in self.doc_extensions:
+            p = resolve_safe_path(root, safe)
+            if p is None or not p.is_file() or p.suffix.lower() not in self.doc_extensions:
                 continue
             text = self._read_text(p)
             if not text:
                 continue
-            seen.add(rel)
+            seen.add(safe)
             title, headings = self._extract_headings(text)
             summary = self._make_summary(text, self.max_summary_chars)
             search = title + "\n" + " ".join(headings) + "\n" + summary
-            role = role_overrides.get(rel) or doc_role(rel)
+            role = role_overrides.get(safe) or doc_role(safe)
             categories = categories_for(rel, search)
             for extra in _ROLE_EXTRA_CATEGORIES.get(role, []):
                 if extra not in categories:
                     categories.append(extra)
             docs.append({
-                "path": rel,
-                "title": title or rel,
+                "path": safe,
+                "title": title or safe,
                 "headings": headings,
                 "summary": summary,
                 "categories": categories,
@@ -209,7 +221,7 @@ class ProjectScanner:
                 "size": p.stat().st_size,
                 "declared": True,
             })
-            doc_texts[rel] = text
+            doc_texts[safe] = text
 
         preferred = self.settings.get("scan", {}).get("preferred_docs", [])
         docs.sort(key=lambda d: (
@@ -220,17 +232,31 @@ class ProjectScanner:
         ))
         return docs, doc_texts
 
-    def _walk(self, root: Path):
+    def _walk(self, root: Path, start: Path | None = None):
         """带剪枝的递归遍历，只产出文件；跳过重型/生成目录。"""
-        stack = [root]
+        stack = [start or root]
+        visited_dirs: set[Path] = set()
         while stack:
             d = stack.pop()
+            try:
+                real_dir = d.resolve(strict=False)
+            except (OSError, RuntimeError):
+                continue
+            if real_dir in visited_dirs:
+                continue
+            visited_dirs.add(real_dir)
             try:
                 entries = list(d.iterdir())
             except OSError:
                 continue
             for p in entries:
                 try:
+                    try:
+                        rel = p.relative_to(root).as_posix()
+                    except ValueError:
+                        continue
+                    if resolve_safe_path(root, rel) is None:
+                        continue
                     if p.is_dir():
                         name = p.name
                         if name in self.skip_dir_names:
@@ -253,7 +279,7 @@ class ProjectScanner:
         manifest: dict | None = None,
     ) -> list[dict]:
         if manifest and manifest.get("modules"):
-            modules = self._manifest_modules(manifest)
+            modules = self._manifest_modules(root, manifest)
             if modules:
                 return modules
 
@@ -266,8 +292,11 @@ class ProjectScanner:
                 return
             if not _FILE_EXT_RE.search(path) and "/" not in path:
                 return
-            target = root / path
-            if not target.exists():
+            safe = safe_relative_path(root, path)
+            if safe is None:
+                return
+            target = resolve_safe_path(root, safe)
+            if target is None or not target.exists():
                 # 短文件名（无目录前缀）尝试按文件名在整个项目树中解析
                 if "/" not in path and _FILE_EXT_RE.search(path):
                     matches = basename_index.get(path.lower())
@@ -276,6 +305,8 @@ class ProjectScanner:
                     path = matches[0]
                 else:
                     return
+            else:
+                path = safe
             key = path.lower()
             if key not in hints:
                 hints[key] = {"path": path, "desc": ""}
@@ -301,12 +332,16 @@ class ProjectScanner:
         modules.sort(key=lambda m: (m["path"].lower()))
         return modules
 
-    def _manifest_modules(self, manifest: dict) -> list[dict]:
+    def _manifest_modules(self, root: Path, manifest: dict) -> list[dict]:
         """按 context-manifest.yaml 生成模块（优先于自动扫描；paths 可选）。"""
         modules: list[dict] = []
         for m in manifest.get("modules", {}).values():
             keywords = m.get("keywords") or []
-            documents = list(m.get("documents") or []) + list(m.get("decisions") or [])
+            declared_documents = self._safe_manifest_paths(root, m.get("documents"))
+            decisions = self._safe_manifest_paths(root, m.get("decisions"))
+            documents = self._safe_manifest_paths(
+                root, declared_documents + decisions
+            )
             paths = m.get("paths") or []
             if not paths:
                 # 文档型模块：无代码路径，按关键词与关联文档参与匹配
@@ -318,12 +353,12 @@ class ProjectScanner:
                     "categories": categories_for("", text),
                     "keywords": keywords,
                     "documents": documents,
-                    "decisions": m.get("decisions") or [],
+                    "decisions": decisions,
                     "source": "manifest",
                 })
                 continue
             for path in paths:
-                normalized = _norm_path_token(path)
+                normalized = safe_relative_path(root, _norm_path_token(path))
                 if not normalized:
                     continue
                 text = normalized + "\n" + m["name"] + "\n" + " ".join(keywords)
@@ -334,34 +369,47 @@ class ProjectScanner:
                     "categories": categories_for(normalized, text),
                     "keywords": keywords,
                     "documents": documents,
-                    "decisions": m.get("decisions") or [],
+                    "decisions": decisions,
                     "source": "manifest",
                 })
         modules.sort(key=lambda m: (m["path"].lower(), m["name"].lower()))
         return modules
 
-    def _manifest_knowledge_domains(self, manifest: dict | None) -> list[dict]:
+    def _manifest_knowledge_domains(self, root: Path, manifest: dict | None) -> list[dict]:
         """按 context-manifest.yaml 的 knowledge_domains 生成知识域（业务知识而非代码模块）。"""
         if not manifest:
             return []
         domains: list[dict] = []
         for d in manifest.get("knowledge_domains", {}).values():
-            paths = d.get("paths") or []
+            paths = self._safe_manifest_paths(root, d.get("paths") or [])
             keywords = d.get("keywords") or []
-            documents = list(d.get("documents") or []) + list(d.get("decisions") or [])
+            declared_documents = self._safe_manifest_paths(root, d.get("documents"))
+            decisions = self._safe_manifest_paths(root, d.get("decisions"))
+            documents = self._safe_manifest_paths(
+                root, declared_documents + decisions
+            )
             text = " ".join(paths) + "\n" + d["name"] + "\n" + " ".join(keywords)
             domains.append({
                 "name": d["name"],
                 "paths": paths,
                 "path": paths[0] if paths else "",
                 "documents": documents,
-                "decisions": d.get("decisions") or [],
+                "decisions": decisions,
                 "keywords": keywords,
                 "categories": categories_for("", text),
                 "source": "manifest",
             })
         domains.sort(key=lambda d: d["name"].lower())
         return domains
+
+    @staticmethod
+    def _safe_manifest_paths(root: Path, paths) -> list[str]:
+        out: list[str] = []
+        for path in paths or []:
+            safe = safe_relative_path(root, path)
+            if safe is not None and safe not in out:
+                out.append(safe)
+        return out
 
     def _extract_path_hints(self, text: str, add_hint) -> None:
         if not text:

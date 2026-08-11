@@ -9,15 +9,23 @@ from pathlib import Path
 
 import yaml
 
+from .safe_paths import safe_relative_path
+
 MANIFEST_FILENAME = "context-manifest.yaml"
 
 
 def load_manifest(root: Path) -> dict | None:
-    p = root / MANIFEST_FILENAME
-    if not p.is_file():
+    root = Path(root).resolve()
+    p = safe_relative_path(root, MANIFEST_FILENAME)
+    if p is None:
+        return None
+    manifest_path = root / p
+    if not manifest_path.is_file():
         return None
     try:
-        raw = yaml.safe_load(p.read_text(encoding="utf-8", errors="replace") or "{}")
+        raw = yaml.safe_load(
+            manifest_path.read_text(encoding="utf-8", errors="replace") or "{}"
+        )
     except Exception as exc:  # noqa: BLE001 - 解析失败降级为自动扫描
         return {
             "path": MANIFEST_FILENAME,
@@ -37,16 +45,25 @@ def load_manifest(root: Path) -> dict | None:
             "documents": {},
         }
 
+    def safe_paths(paths) -> list[str]:
+        out: list[str] = []
+        for value in paths or []:
+            safe = safe_relative_path(root, value)
+            if safe is not None and safe not in out:
+                out.append(safe)
+        return out
+
     def parse_group(group) -> dict[str, dict]:
         out: dict[str, dict] = {}
-        for name, info in (group or {}).items():
+        items = group.items() if isinstance(group, dict) else []
+        for name, info in items:
             if not isinstance(info, dict):
                 continue
             out[str(name)] = {
                 "name": str(name),
-                "paths": [str(x) for x in (info.get("paths") or [])],
-                "documents": [str(x) for x in (info.get("documents") or [])],
-                "decisions": [str(x) for x in (info.get("decisions") or [])],
+                "paths": safe_paths(info.get("paths")),
+                "documents": safe_paths(info.get("documents")),
+                "decisions": safe_paths(info.get("decisions")),
                 "keywords": [str(x) for x in (info.get("keywords") or [])],
             }
         return out
@@ -65,9 +82,11 @@ def load_manifest(root: Path) -> dict | None:
             project["type"] = project_raw["type"]
 
     documents: dict[str, list[str]] = {}
-    for cat, paths in (raw.get("documents") or {}).items():
+    top_documents = raw.get("documents") or {}
+    items = top_documents.items() if isinstance(top_documents, dict) else []
+    for cat, paths in items:
         if isinstance(paths, list):
-            documents[str(cat)] = [str(x) for x in paths]
+            documents[str(cat)] = safe_paths(paths)
 
     return {
         "path": MANIFEST_FILENAME,

@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .safe_paths import resolve_safe_path
+
 
 class ProjectBootstrap:
     def __init__(self, settings: dict):
@@ -44,7 +46,10 @@ class ProjectBootstrap:
             if f["action"] == "skip":
                 skipped.append(f["path"])
                 continue
-            target = root / f["path"]
+            target = resolve_safe_path(root, f["path"])
+            if target is None:
+                skipped.append(f["path"])
+                continue
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(f["content"], encoding="utf-8", newline="\n")
             created.append(f["path"])
@@ -69,14 +74,18 @@ class ProjectBootstrap:
             ".codex/workflow.md",
             "context-manifest.yaml",
         ]
-        return {t: (root / t).exists() for t in targets}
+        return {
+            t: (target is not None and target.exists())
+            for t in targets
+            for target in [resolve_safe_path(root, t)]
+        }
 
     def _probe(self, root: Path) -> dict:
         name = root.name
-        readme = self._read_first(root / "README.md") or self._read_first(root / "README.zh.md")
+        readme = self._read_first(root, "README.md") or self._read_first(root, "README.zh.md")
         pkg: dict = {}
-        pkg_path = root / "package.json"
-        if pkg_path.is_file():
+        pkg_path = resolve_safe_path(root, "package.json")
+        if pkg_path is not None and pkg_path.is_file():
             try:
                 pkg = json.loads(pkg_path.read_text(encoding="utf-8", errors="replace"))
             except Exception:  # noqa: BLE001
@@ -97,9 +106,10 @@ class ProjectBootstrap:
             },
         }
 
-    def _read_first(self, p: Path, limit: int | None = None) -> str:
+    def _read_first(self, root: Path, rel: str, limit: int | None = None) -> str:
         limit = limit or self.max_readme
-        if not p.is_file():
+        p = resolve_safe_path(root, rel)
+        if p is None or not p.is_file():
             return ""
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
@@ -110,7 +120,15 @@ class ProjectBootstrap:
 
     def _dir_tree(self, root: Path) -> list[list[str]]:
         candidates = [root / "src", root / "app", root / "pages", root / "electron"]
-        base = next((c for c in candidates if c.is_dir()), None)
+        base = next(
+            (
+                safe
+                for c in candidates
+                if (safe := resolve_safe_path(root, c.relative_to(root))) is not None
+                and safe.is_dir()
+            ),
+            None,
+        )
         if base is None:
             base = root
         skip = set(self.settings.get("scan", {}).get("skip_dir_names", []))
@@ -122,7 +140,12 @@ class ProjectBootstrap:
         for child in children:
             if child.name in skip:
                 continue
-            rel = child.relative_to(root).as_posix()
+            try:
+                rel = child.relative_to(root).as_posix()
+            except ValueError:
+                continue
+            if resolve_safe_path(root, rel) is None:
+                continue
             entries.append([rel, "目录" if child.is_dir() else "文件"])
             if len(entries) >= self.max_src_entries:
                 break
@@ -137,7 +160,16 @@ class ProjectBootstrap:
         out = []
         try:
             for child in sorted(root.iterdir(), key=lambda x: x.name.lower()):
-                if child.is_file() and child.suffix.lower() in exts and child.name not in skip_names:
+                try:
+                    rel = child.relative_to(root).as_posix()
+                except ValueError:
+                    continue
+                if (
+                    resolve_safe_path(root, rel) is not None
+                    and child.is_file()
+                    and child.suffix.lower() in exts
+                    and child.name not in skip_names
+                ):
                     out.append(child.name)
                 if len(out) >= self.max_configs:
                     break
@@ -261,7 +293,9 @@ class ProjectBootstrap:
         ]
         files = []
         for rel, content in plan:
-            exists = (root / rel).exists()
+            target = resolve_safe_path(root, rel)
+            # 不安全的现有 symlink 视为 skip，create() 不得覆盖其目标。
+            exists = target is None or target.exists()
             files.append({
                 "path": rel,
                 "action": "skip" if exists else "create",

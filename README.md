@@ -185,3 +185,7 @@ knowledge_domains:
 ```
 
 更详细的架构、变量、权限边界和测试证据见 `documentation/`。
+
+## License
+
+Apache-2.0，详见 [LICENSE](LICENSE)。
