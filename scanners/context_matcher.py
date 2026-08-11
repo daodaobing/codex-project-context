@@ -5,6 +5,14 @@ from __future__ import annotations
 import re
 from pathlib import PurePosixPath
 
+from scanners.document_family import (
+    alias_normalize,
+    alias_similar,
+    canonical_family,
+    locale_of,
+    token_overlap_ratio,
+)
+
 
 _CAMEL_BOUNDARY_RE = re.compile(r"([a-z0-9])([A-Z])")
 _TOKEN_RE = re.compile(r"[a-z0-9]+|[\u4e00-\u9fff]+", re.IGNORECASE)
@@ -75,6 +83,8 @@ class ContextMatcher:
         self.min_relevant_score = float(idx.get("min_relevant_score", 1.0))
         self.relative_score_floor = float(idx.get("relative_score_floor", 0.35))
         self.fallback_files = max(1, int(idx.get("fallback_relevant_files", 2)))
+        self.diversity_penalty = float(idx.get("diversity_penalty", 0.35))
+        self.family_hard_cap = int(idx.get("family_hard_cap", 8))
         self.top_modules = idx.get("top_recommended_modules", 4)
         self.max_summary_chars = idx.get("max_context_summary_chars", 1400)
         self.entry_bonus = float(idx.get("entry_file_bonus", 0.35))
@@ -106,7 +116,7 @@ class ContextMatcher:
         boost_docs(result["modules"][: self.top_modules], 0.75)
         boost_docs(result["knowledge"][:4], 1.0)
         docs_scored.sort(key=lambda x: (-x[0], x[1].get("path", "")))
-        top = self._select_documents(docs_scored)
+        top, selection_notes = self._select_documents(docs_scored, task)
         relevant_files = [d["path"] for _, d, _ in top]
 
         recommended_read = [
@@ -134,6 +144,7 @@ class ContextMatcher:
             "matched_topics": [v["label"] for v in result["rule_hits"].values()],
             "matched_knowledge": matched_knowledge,
             "indexed_at": project.get("scanned_at", ""),
+            "selection_notes": selection_notes,
         }
 
     def analyze(self, project: dict, task: str) -> dict:
@@ -187,11 +198,20 @@ class ContextMatcher:
         )
         return total, result
 
-    def _select_documents(self, docs_scored):
-        """Select docs using an absolute threshold, relative threshold, and cap."""
+    def _select_documents(self, docs_scored, task: str):
+        """Diversity-aware selection: family dedupe, locale preference, penalty.
 
+        V0.3 keeps the V0.2 score threshold and hard cap, then applies a
+        greedy pass that skips a second member of an already-selected canonical
+        family unless it is clearly a different role or a much stronger hit.
+        It also applies a light alias/token-overlap penalty to near-duplicate
+        topics so one family cannot occupy the whole budget.
+        """
+
+        notes: list[str] = []
         if not docs_scored:
-            return []
+            return [], notes
+
         positive = [item for item in docs_scored if item[0] >= self.min_relevant_score]
         if positive:
             best_score = positive[0][0]
@@ -199,12 +219,77 @@ class ContextMatcher:
                 self.min_relevant_score,
                 best_score * self.relative_score_floor,
             )
-            selected = [item for item in docs_scored if item[0] >= threshold]
-            if selected:
-                return selected[: self.max_files]
+            candidates = [item for item in docs_scored if item[0] >= threshold]
+        else:
+            candidates = []
 
-        # 没有明显命中时保留少量入口/最高分文档，避免返回全部文档。
-        return docs_scored[: min(self.fallback_files, self.max_files)]
+        if not candidates:
+            # 没有明显命中时保留少量入口/最高分文档，避免返回全部文档。
+            fallback = docs_scored[: min(self.fallback_files, self.max_files)]
+            return fallback, notes
+
+        selected: list[tuple[float, dict, list[str]]] = []
+        family_counts: dict[str, int] = {}
+        task_family = canonical_family(task) if task else ""
+        task_locale = locale_of(task)
+
+        for item in candidates:
+            score, doc, reasons = item
+            path = str(doc.get("path") or "")
+            family = canonical_family(path)
+            locale = locale_of(path)
+
+            # 1. Hard cap and family cap.
+            if len(selected) >= self.max_files:
+                notes.append(f"max_files reached: {self.max_files}")
+                break
+            if family and family_counts.get(family, 0) >= 1:
+                # A second member of an already-selected family is only taken
+                # when it is a much stronger hit or a different role.
+                if score >= best_score * 0.85 and doc.get("role") not in (
+                    "other",
+                    "",
+                    None,
+                ):
+                    family_counts[family] += 1
+                    selected.append(item)
+                    reasons.append(f"family_duplicate_allowed:role={doc.get('role', '')}")
+                    notes.append(f"duplicate_family_allowed:{family}")
+                else:
+                    reasons.append(f"duplicate_family_skipped:{family}")
+                    notes.append(f"duplicate_family_skipped:{family}")
+                continue
+
+            # 2. Locale preference: prefer the non-locale / English variant.
+            if task_locale and locale and locale != task_locale:
+                # Task explicitly targets another locale; keep that variant.
+                pass
+            elif family and not locale:
+                # No-locale original already selected; a later locale variant
+                # loses ground only through the normal score ordering.
+                pass
+
+            # 3. Light diversity penalty for near-duplicate topics.
+            penalty = 0.0
+            for _, selected_doc, _ in selected:
+                candidate_tokens = self._document_fields(doc)["all"]
+                selected_tokens = self._document_fields(selected_doc)["all"]
+                overlap = token_overlap_ratio(candidate_tokens, selected_tokens)
+                if overlap >= 0.6:
+                    penalty = max(penalty, self.diversity_penalty * overlap)
+            effective_score = score - penalty
+
+            family_counts.setdefault(family, 0)
+            family_counts[family] += 1
+            selected.append((effective_score, doc, reasons))
+            if penalty:
+                reasons.append(f"diversity_penalty={penalty:g}")
+                notes.append(f"diversity_penalty={penalty:g}:{path}")
+            notes.append(f"canonical_family={family or '(root)'}")
+
+        # Re-sort by effective score to honor the diversity-adjusted ranking.
+        selected.sort(key=lambda x: (-x[0], x[1].get("path", "")))
+        return selected[: self.max_files], notes
 
     def _collect_rule_hits(self, task_lower: str) -> dict:
         rule_hits = {}

@@ -1,4 +1,4 @@
-# Benchmark (V0.1 / V0.2)
+# Benchmark (V0.1 / V0.2 / V0.3)
 
 This benchmark measures the current project-context routing algorithm on a small,
 fixed public-OSS dataset. It is intentionally separate from the matcher and does
@@ -11,6 +11,21 @@ independent holdout during Router V0.2, but their results have now been
 inspected. They are therefore treated as a validation set for V0.3 and are not
 used as the final blind evaluation. The frozen validation definitions live
 under `validation/` and are not used as the final blind evaluation.
+
+For Router V0.3 a fresh blind holdout was introduced under `validation-v0.3/`. It pins
+two repositories that were never consulted while developing the V0.3 router:
+
+- `astral-sh/ruff` (Rust, MIT) at `d08b174e09a23c0a0413b7e7db7dc67d69593eac`
+- `encode/httpx` (Python, BSD-3-Clause) at `b5addb64f0161ff6bfe94c124ef76f6a1fba5254`
+
+The five tasks per repository were frozen from the pinned file trees before any
+holdout routing run (`"dataset": "blind-holdout-v0.3"`, `"frozen": true`). The
+holdout was executed exactly once, after the V0.3 router implementation was
+locked, and the router is intentionally not tuned against these results.
+
+> Ruff and HTTPX were used as the blind holdout for Router V0.3. Their results
+> have now been inspected, so they are treated as a validation set for
+> subsequent router development and are never reused as a blind evaluation.
 
 ## Dataset
 
@@ -46,6 +61,12 @@ executed once after the frozen definitions were created:
 python benchmarks/run_benchmark.py --dataset validation --run-id v0.2-validation-final
 ```
 
+The V0.3 blind holdout was executed once after the router was locked:
+
+```text
+python benchmarks/run_benchmark.py --dataset validation-v0.3 --run-id v0.3-holdout-final
+```
+
 The runner uses the existing `server.get_project_context(project_path, task)`
 algorithm without benchmark-only parameters or LLM/OpenAI calls. It uses a
 temporary index under the ignored workspace directory, so the normal project
@@ -58,7 +79,8 @@ definition hashes, task text, selected paths, route output, and measured
 latencies, but not source code.
 
 Validation outputs use `benchmarks/results/validation/` so they cannot overwrite
-the diagnostic latest result.
+the diagnostic latest result. V0.3 holdout outputs use
+`benchmarks/results/validation-v0.3/` for the same reason.
 
 ## Metrics
 
@@ -80,7 +102,8 @@ or model-quality claim is inferred from these measurements.
 
 ## Limitations
 
-This is a 15-task, human-authored sample, not a statistical evaluation of all
+This is a 15-task diagnostic/validation sample plus a 10-task blind holdout,
+all human-authored, not a statistical evaluation of all
 OSS projects. The Gin snapshot exposes one indexed Markdown guide, so its five
 tasks are intentionally a small routing sanity check rather than a broad
 documentation corpus. Ground truth reflects documentation relevance, not

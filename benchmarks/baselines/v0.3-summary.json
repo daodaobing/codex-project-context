@@ -1,0 +1,74 @@
+{
+  "baseline": "router-v0.3",
+  "source_run_id": "v0.3-holdout-final",
+  "note": "All values are copied from the actual V0.3 blind-holdout run (ruff + httpx). Ruff and HTTPX were used as the blind holdout for Router V0.3; their results have now been inspected, so they are treated as a validation set for subsequent router development and are never reused as a blind evaluation.",
+  "definitions": {
+    "validation-v0.3": {
+      "repos_sha256": "b67bb13a2a45a6a18d04903f2336269835923a270ff658fe53f83106d6fab566",
+      "tasks_sha256": "6bca95634aad3383e656757af392812c0d2395a6812b36ad453f6f14ba7852bb"
+    }
+  },
+  "validation-v0.3": {
+    "task_count": 10,
+    "failed_task_count": 0,
+    "required_count": 22,
+    "required_hits": 18,
+    "recall": 0.818182,
+    "precision": 0.446429,
+    "context_reduction": 0.574613,
+    "byte_reduction": 0.574583,
+    "file_reduction": 0.726829,
+    "selected_doc_count": 56,
+    "full_context_doc_count": 205,
+    "full_context_chars": 1922390,
+    "selected_context_chars": 817759,
+    "latency_ms": {
+      "samples": [
+        40.553,
+        43.9834,
+        23.9927,
+        33.6454,
+        31.4559,
+        23.139,
+        12.5709,
+        11.0821,
+        11.2202,
+        10.1019
+      ],
+      "median": 23.56585,
+      "p95": 43.9834
+    },
+    "cold_scan_latency_ms": {
+      "samples": [14136.0888, 760.3571],
+      "median": 7448.22295,
+      "p95": 14136.0888
+    },
+    "per_repository": {
+      "ruff": {
+        "recall": 0.8,
+        "precision": 0.333333,
+        "context_reduction": 0.46115,
+        "file_reduction": 0.576471,
+        "required_count": 10,
+        "required_hits": 8,
+        "failed_required_docs": [
+          "ruff-h02: docs/formatter/black.md",
+          "ruff-h05: docs/faq.md"
+        ]
+      },
+      "httpx": {
+        "recall": 0.833333,
+        "precision": 0.65,
+        "context_reduction": 0.775604,
+        "file_reduction": 0.833333,
+        "required_count": 12,
+        "required_hits": 10,
+        "failed_required_docs": [
+          "httpx-h03: docs/advanced/proxies.md",
+          "httpx-h04: docs/advanced/extensions.md",
+          "httpx-h04: docs/api.md"
+        ]
+      }
+    }
+  }
+}

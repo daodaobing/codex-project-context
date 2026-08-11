@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "dataset": "blind-holdout-v0.3",
+  "frozen": true,
+  "ground_truth_note": "Blind Holdout Ground Truth was manually frozen from the pinned repository snapshots before any holdout routing run. The required and acceptable documentation paths were defined from the repository file tree only; no matcher output was consulted. This dataset is used exactly once after the router implementation is locked.",
+  "tasks": [
+    {
+      "id": "ruff-h01",
+      "repository": "ruff",
+      "kind": "debugging",
+      "task": "Debug why a Ruff lint rule is not being applied to a file and how to check the enabled rules and per-file exceptions.",
+      "required_docs": [
+        "docs/linter.md",
+        "docs/configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/faq.md",
+        "docs/preview.md"
+      ]
+    },
+    {
+      "id": "ruff-h02",
+      "repository": "ruff",
+      "kind": "feature",
+      "task": "Add a new formatter option to a project and understand how the formatter interacts with the linter.",
+      "required_docs": [
+        "docs/formatter.md",
+        "docs/formatter/black.md"
+      ],
+      "acceptable_docs": [
+        "docs/configuration.md",
+        "docs/faq.md"
+      ]
+    },
+    {
+      "id": "ruff-h03",
+      "repository": "ruff",
+      "kind": "configuration",
+      "task": "Configure Ruff for a monorepo with per-directory settings and editor integration.",
+      "required_docs": [
+        "docs/configuration.md",
+        "docs/editors/settings.md"
+      ],
+      "acceptable_docs": [
+        "docs/editors/setup.md",
+        "docs/editors/features.md"
+      ]
+    },
+    {
+      "id": "ruff-h04",
+      "repository": "ruff",
+      "kind": "architecture",
+      "task": "Understand how Ruff decides between preview and stable rules and how rule versioning works before enabling a new rule.",
+      "required_docs": [
+        "docs/preview.md",
+        "docs/versioning.md"
+      ],
+      "acceptable_docs": [
+        "docs/faq.md",
+        "docs/linter.md"
+      ]
+    },
+    {
+      "id": "ruff-h05",
+      "repository": "ruff",
+      "kind": "api",
+      "task": "Use Ruff programmatically as a library and understand the public API surface for linting code.",
+      "required_docs": [
+        "docs/linter.md",
+        "docs/faq.md"
+      ],
+      "acceptable_docs": [
+        "docs/api.md",
+        "docs/configuration.md"
+      ]
+    },
+    {
+      "id": "httpx-h01",
+      "repository": "httpx",
+      "kind": "debugging",
+      "task": "Debug an HTTPX request that raises a timeout exception and understand how timeouts are configured per request and per client.",
+      "required_docs": [
+        "docs/advanced/timeouts.md",
+        "docs/exceptions.md"
+      ],
+      "acceptable_docs": [
+        "docs/advanced/clients.md",
+        "docs/api.md"
+      ]
+    },
+    {
+      "id": "httpx-h02",
+      "repository": "httpx",
+      "kind": "feature",
+      "task": "Add custom authentication to an HTTPX client and attach event hooks to request lifecycle.",
+      "required_docs": [
+        "docs/advanced/authentication.md",
+        "docs/advanced/event-hooks.md"
+      ],
+      "acceptable_docs": [
+        "docs/advanced/clients.md",
+        "docs/api.md"
+      ]
+    },
+    {
+      "id": "httpx-h03",
+      "repository": "httpx",
+      "kind": "configuration",
+      "task": "Configure an HTTPX client for proxies, TLS/SSL verification, and environment variables.",
+      "required_docs": [
+        "docs/advanced/proxies.md",
+        "docs/advanced/ssl.md",
+        "docs/environment_variables.md"
+      ],
+      "acceptable_docs": [
+        "docs/advanced/clients.md",
+        "docs/api.md"
+      ]
+    },
+    {
+      "id": "httpx-h04",
+      "repository": "httpx",
+      "kind": "architecture",
+      "task": "Understand HTTPX transport architecture before adding a custom transport or async backend.",
+      "required_docs": [
+        "docs/advanced/transports.md",
+        "docs/advanced/extensions.md"
+      ],
+      "acceptable_docs": [
+        "docs/async.md",
+        "docs/advanced/clients.md"
+      ]
+    },
+    {
+      "id": "httpx-h05",
+      "repository": "httpx",
+      "kind": "api",
+      "task": "Use the HTTPX public API for async requests and understand compatibility guarantees.",
+      "required_docs": [
+        "docs/api.md",
+        "docs/async.md",
+        "docs/compatibility.md"
+      ],
+      "acceptable_docs": [
+        "docs/advanced/clients.md",
+        "docs/quickstart.md"
+      ]
+    }
+  ]
+}

@@ -38,6 +38,11 @@ DATASET_FILES = {
         BENCHMARK_ROOT / "validation" / "tasks.json",
         RESULTS_ROOT / "validation",
     ),
+    "validation-v0.3": (
+        BENCHMARK_ROOT / "validation-v0.3" / "repos.json",
+        BENCHMARK_ROOT / "validation-v0.3" / "tasks.json",
+        RESULTS_ROOT / "validation-v0.3",
+    ),
 }
 
 if str(ROOT) not in sys.path:

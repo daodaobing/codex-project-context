@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "dataset": "blind-holdout-v0.3",
+  "repositories": [
+    {
+      "id": "ruff",
+      "name": "astral-sh/ruff",
+      "language": "Rust",
+      "url": "https://github.com/astral-sh/ruff.git",
+      "commit": "d08b174e09a23c0a0413b7e7db7dc67d69593eac",
+      "license": "MIT",
+      "doc_count": 15
+    },
+    {
+      "id": "httpx",
+      "name": "encode/httpx",
+      "language": "Python",
+      "url": "https://github.com/encode/httpx.git",
+      "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+      "license": "BSD-3-Clause",
+      "doc_count": 23
+    }
+  ]
+}
