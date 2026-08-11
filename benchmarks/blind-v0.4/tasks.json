@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "dataset": "blind-holdout-v0.4",
+  "frozen": true,
+  "ground_truth_note": "Blind Holdout V0.4 Ground Truth was manually frozen from the pinned repository snapshots before any holdout routing run. The required and acceptable documentation paths were defined from the repository file tree and document content only; no matcher output was consulted. Each repository contributes exactly five maintenance tasks (debugging / feature / configuration / api / architecture). This dataset is used exactly once after the V0.4 router is locked.",
+  "tasks": [
+    {
+      "id": "okhttp-h01",
+      "repository": "okhttp",
+      "kind": "debugging",
+      "task": "Debug why an OkHttp request is slower than expected and locate the connection setup and event timing details.",
+      "required_docs": [
+        "docs/features/connections.md",
+        "docs/features/events.md"
+      ],
+      "acceptable_docs": [
+        "docs/features/calls.md",
+        "docs/features/https.md"
+      ]
+    },
+    {
+      "id": "okhttp-h02",
+      "repository": "okhttp",
+      "kind": "feature",
+      "task": "Add a custom interceptor to an OkHttp client that logs outgoing requests and retries failed calls.",
+      "required_docs": [
+        "docs/features/interceptors.md",
+        "docs/features/calls.md"
+      ],
+      "acceptable_docs": [
+        "docs/features/events.md",
+        "docs/recipes.md"
+      ]
+    },
+    {
+      "id": "okhttp-h03",
+      "repository": "okhttp",
+      "kind": "configuration",
+      "task": "Configure OkHttp TLS settings and connection specifications for a stricter HTTPS policy.",
+      "required_docs": [
+        "docs/features/https.md",
+        "docs/features/connections.md"
+      ],
+      "acceptable_docs": [
+        "docs/security/security.md",
+        "docs/security/security_providers.md"
+      ]
+    },
+    {
+      "id": "okhttp-h04",
+      "repository": "okhttp",
+      "kind": "api",
+      "task": "Use the OkHttp public API to build a client, create a request, and read the response body.",
+      "required_docs": [
+        "docs/features/calls.md",
+        "docs/features/connections.md"
+      ],
+      "acceptable_docs": [
+        "docs/recipes.md",
+        "docs/features/interceptors.md"
+      ]
+    },
+    {
+      "id": "okhttp-h05",
+      "repository": "okhttp",
+      "kind": "architecture",
+      "task": "Understand how OkHttp plans connections through URLs, addresses, and routes before deciding to customize the connection pool.",
+      "required_docs": [
+        "docs/features/connections.md",
+        "docs/features/calls.md"
+      ],
+      "acceptable_docs": [
+        "docs/features/https.md",
+        "docs/features/events.md"
+      ]
+    },
+    {
+      "id": "jest-h01",
+      "repository": "jest",
+      "kind": "debugging",
+      "task": "Debug why a Jest test that uses fake timers is flaky and understand how to set up and tear down timer mocks.",
+      "required_docs": [
+        "docs/TimerMocks.md",
+        "docs/SetupAndTeardown.md"
+      ],
+      "acceptable_docs": [
+        "docs/JestObjectAPI.md",
+        "docs/Troubleshooting.md"
+      ]
+    },
+    {
+      "id": "jest-h02",
+      "repository": "jest",
+      "kind": "feature",
+      "task": "Add module mocking to a Jest test suite to stub out a dependency and control its return values.",
+      "required_docs": [
+        "docs/MockFunctions.md",
+        "docs/ManualMocks.md"
+      ],
+      "acceptable_docs": [
+        "docs/MockFunctionAPI.md",
+        "docs/BypassingModuleMocks.md"
+      ]
+    },
+    {
+      "id": "jest-h03",
+      "repository": "jest",
+      "kind": "configuration",
+      "task": "Configure a Jest test environment to use jsdom instead of node and set per-file environment options.",
+      "required_docs": [
+        "docs/TestEnvironment.md",
+        "docs/Configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/EnvironmentVariables.md",
+        "docs/CLI.md"
+      ]
+    },
+    {
+      "id": "jest-h04",
+      "repository": "jest",
+      "kind": "api",
+      "task": "Use the Jest expect API and matchers to assert values and call mock functions directly.",
+      "required_docs": [
+        "docs/ExpectAPI.md",
+        "docs/UsingMatchers.md"
+      ],
+      "acceptable_docs": [
+        "docs/GlobalAPI.md",
+        "docs/JestObjectAPI.md"
+      ]
+    },
+    {
+      "id": "jest-h05",
+      "repository": "jest",
+      "kind": "architecture",
+      "task": "Understand how Jest transforms code and runs tests in a project with TypeScript or JSX before adding a custom transformer.",
+      "required_docs": [
+        "docs/CodeTransformation.md",
+        "docs/Configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/Architecture.md",
+        "docs/JestPlatform.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "dataset": "blind-holdout-v0.4",
+  "repositories": [
+    {
+      "id": "okhttp",
+      "name": "square/okhttp",
+      "language": "Java/Kotlin",
+      "url": "https://github.com/square/okhttp.git",
+      "commit": "91a8b34c6f44bd28c421364f8edadc9f324dddd9",
+      "license": "Apache-2.0",
+      "doc_count": 22
+    },
+    {
+      "id": "jest",
+      "name": "jestjs/jest",
+      "language": "TypeScript",
+      "url": "https://github.com/jestjs/jest.git",
+      "commit": "5671583e41f308f6c2992523b3bc1026f46a1ebc",
+      "license": "MIT",
+      "doc_count": 38
+    }
+  ]
+}
