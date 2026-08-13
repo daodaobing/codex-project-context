@@ -56,6 +56,7 @@ async def main() -> None:
                 required = {
                     "get_project_context", "get_context_pack", "scan_project", "list_projects",
                     "initialize_project_context", "suggest_projects", "analyze_changes",
+                    "get_context_candidates",
                 }
                 missing = required.difference(names)
                 assert not missing, f"missing tools: {sorted(missing)}"
@@ -76,6 +77,14 @@ async def main() -> None:
                 )))
                 assert context["relevant_files"]
                 assert context["matched_topics"]
+
+                cand = json.loads(_text(await session.call_tool(
+                    "get_context_candidates", {"project_path": str(git_demo), "task": "debug database failure"}
+                )))
+                assert isinstance(cand["candidates"], list)
+                for item in cand["candidates"]:
+                    assert "path" in item and "rank" in item and "reasons" in item
+                    assert "content" not in item
 
                 pack = json.loads(_text(await session.call_tool(
                     "get_context_pack", {"project_path": str(git_demo), "task": "debug database failure"}

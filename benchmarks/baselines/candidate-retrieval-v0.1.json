@@ -1,0 +1,26 @@
+{
+  "name": "candidate-retrieval-v0.1",
+  "metrics": {
+    "required_recall_at_10": 0.945652,
+    "worst_dataset_recall_at_10": 0.9,
+    "all_required_found_at_10": 0.888889,
+    "full_context_reduction": 0.616439,
+    "metadata_reduction": 0.949619,
+    "avg_metadata_chars": 9172.24,
+    "p95_metadata_chars": 14112.0
+  },
+  "measured": {
+    "available": true,
+    "task_count": 45,
+    "avg_metadata_chars": 9172.24,
+    "p95_metadata_chars": 14112,
+    "median_assembly_ms": 16.5468,
+    "p95_assembly_ms": 78.5606
+  },
+  "floors": {
+    "required_recall_at_10": 0.93,
+    "worst_dataset_recall_at_10": 0.88,
+    "full_context_reduction": 0.6,
+    "metadata_size_headroom": 1.15
+  }
+}

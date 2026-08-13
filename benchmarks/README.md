@@ -1,4 +1,4 @@
-# Benchmark (V0.1 / V0.2 / V0.3)
+# Benchmark (V0.1 / V0.2 / V0.3 / V0.5)
 
 This benchmark measures the current project-context routing algorithm on a small,
 fixed public-OSS dataset. It is intentionally separate from the matcher and does
@@ -67,10 +67,24 @@ The V0.3 blind holdout was executed once after the router was locked:
 python benchmarks/run_benchmark.py --dataset validation-v0.3 --run-id v0.3-holdout-final
 ```
 
-The runner uses the existing `server.get_project_context(project_path, task)`
-algorithm without benchmark-only parameters or LLM/OpenAI calls. It uses a
-temporary index under the ignored workspace directory, so the normal project
-index is not changed.
+The runner uses the same `ContextMatcher` implementation used by
+`server.get_project_context(project_path, task)`, enabling an explicit
+diagnostic trace without changing production response fields. It makes no
+LLM/OpenAI calls and uses a temporary index under the ignored workspace
+directory, so the normal project index is not changed.
+
+Router V0.5 ranking calibration uses the same four fixed datasets and three
+ranking modes: `structural` (BM25 and coverage off), `bm25` (coverage off), and
+`full` (the production ranking path). Run the reproducible ablation report with:
+
+```text
+python benchmarks/analyze_v05.py
+```
+
+The report records query/document tokens, repository-local IDF ordering, score
+components, raw ranks, competitors, and score-scale percentiles under the
+ignored `benchmarks/results/` tree. Selection remains the V0.4 hard-dedup,
+threshold, role-coverage, diversity, and cap layer.
 
 Each invocation preserves raw JSON, CSV, and summary output under
 `benchmarks/results/runs/<run-id>/` and mirrors the latest run at
@@ -93,6 +107,13 @@ matcher.
 - File reduction: `1 - selected document count / full document count`.
 - Required-document recall: required paths returned / required paths defined.
 - Precision: selected paths that are required or acceptable / selected paths.
+- Required-document mean rank: mean raw pre-selection rank of required paths
+  that are present in the indexed corpus. The raw rank is assigned before
+  thresholding, hard deduplication, or soft-diversity selection.
+- Required-document top-3/top-6 rate: fraction of ranked required paths whose
+  raw rank is at most 3/6.
+- Required-document MRR: mean reciprocal raw rank for required paths. Aggregate
+  values are weighted by the number of ranked required paths.
 - Cold scan latency: one forced scan per repository.
 - Cached routing latency: one route call per task after the scan.
 

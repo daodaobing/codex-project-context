@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -74,6 +75,108 @@ def get_project_context(project_path: str, task: str) -> dict:
     project = _ensure_project(project_path, force=False)
     matcher = ContextMatcher(_load_settings())
     return matcher.match(project, task)
+
+
+@mcp.tool()
+def get_context_candidates(
+    project_path: str,
+    task: str,
+    limit: int = 10,
+) -> dict:
+    """返回任务相关的候选文档（metadata-only，不返回全文）。
+
+    候选来自最终 Selection 之前的 raw RRF 排名，用于把仓库文档缩小成一个
+    较小的候选集，再由 Agent 做最终语义选择并只读取真正需要的文档。
+
+    Args:
+        project_path: 项目根目录绝对路径（首次访问会自动扫描并建立索引）。
+        task: 用户当前需求描述（中文/英文均可）。
+        limit: 返回候选数量，默认 10，范围 1-20。
+    """
+    from scanners import candidate_retriever
+
+    started = time.perf_counter()
+    project = _ensure_project(project_path, force=False)
+    norm_limit = candidate_retriever.validate_limit(limit)
+    if norm_limit is None:
+        return {
+            "project": project.get("project", ""),
+            "project_path": project.get("project_path", ""),
+            "error": "invalid_limit",
+            "message": f"limit 必须为 1-{candidate_retriever.MAX_LIMIT} 之间的整数",
+            "candidates": [],
+        }
+
+    try:
+        pack = candidate_retriever.build_candidates(project, task, norm_limit)
+        latency_ms = (time.perf_counter() - started) * 1000
+        _record_candidate_event(
+            project, task, norm_limit, pack, latency_ms, fallback=None, error_type=None
+        )
+        return pack
+    except Exception as exc:  # fail-open: never crash the MCP server
+        latency_ms = (time.perf_counter() - started) * 1000
+        _record_candidate_event(
+            project,
+            task,
+            norm_limit,
+            {},
+            latency_ms,
+            fallback=True,
+            error_type=type(exc).__name__,
+        )
+        return {
+            "project": project.get("project", ""),
+            "project_path": project.get("project_path", ""),
+            "task": task,
+            "error": "candidate_retrieval_failed",
+            "message": "候选检索失败，可回退到 get_project_context 或直接读取项目文档",
+            "candidate_count": 0,
+            "candidates": [],
+        }
+
+
+def _record_candidate_event(
+    project: dict,
+    task: str,
+    limit: int,
+    pack: dict,
+    latency_ms: float,
+    *,
+    fallback: bool | None,
+    error_type: str | None,
+) -> None:
+    """Emit an opt-in local instrumentation event (default off)."""
+
+    from scanners import instrumentation
+
+    if not instrumentation.enabled():
+        return
+    candidates = pack.get("candidates", [])
+    metadata_chars = sum(
+        len(str(c.get("path") or ""))
+        + len(str(c.get("title") or ""))
+        + len(str(c.get("role") or ""))
+        + len(json.dumps(c.get("reasons", []), ensure_ascii=False))
+        for c in candidates
+    )
+    instrumentation.record_event(
+        {
+            "run_id": os.environ.get(instrumentation.ENV_RUN_ID, ""),
+            "task_id": os.environ.get(instrumentation.ENV_TASK_ID, ""),
+            "tool_name": "get_context_candidates",
+            "called": True,
+            "project": project.get("project", ""),
+            "project_path": project.get("project_path", ""),
+            "candidate_limit": limit,
+            "candidate_count": len(candidates),
+            "candidate_paths": [c.get("path") for c in candidates],
+            "metadata_chars": metadata_chars,
+            "latency_ms": round(latency_ms, 6),
+            "fallback": fallback,
+            "error_type": error_type,
+        }
+    )
 
 
 @mcp.tool()

@@ -11,6 +11,10 @@
     "top_relevant_files": 6,
     "max_relevant_files": 6,
     "role_boost": 2.0,
+    "bm25_weight": 1.0,
+    "bm25_k1": 1.2,
+    "bm25_b": 0.75,
+    "coverage_bonus": 0.5,
     "top_recommended_modules": 4
   },
   "scan": {

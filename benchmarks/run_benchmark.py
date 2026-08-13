@@ -294,6 +294,43 @@ def _task_metrics(
     acceptable_set = set(acceptable)
     required_hits = sorted(required_set & selected_set)
     relevant_hits = sorted((required_set | acceptable_set) & selected_set)
+    selected_count = len(selected_set)
+    max_relevant_selected = min(
+        selected_count, len(required_set | acceptable_set)
+    )
+    oracle_precision = _ratio(max_relevant_selected, selected_count)
+    oracle_recall = _ratio(min(selected_count, len(required_set)), len(required_set))
+    normalized_precision = _ratio(
+        _ratio(len(relevant_hits), selected_count), oracle_precision
+    ) if oracle_precision else 0.0
+    # V0.5 ranking diagnostics: the rank of each required doc in the raw
+    # relevance ordering (before selection).  A lower rank is better.
+    trace_rows = route.get("trace", []) if isinstance(route, dict) else []
+    # ``rank_before`` is assigned from the complete pre-selection ordering by
+    # the matcher.  Use it directly instead of re-sorting rounded raw scores;
+    # re-sorting can change ties after the trace rounds scores for readability.
+    rank_by_path: dict[str, int] = {}
+    for row in trace_rows:
+        if not isinstance(row, dict):
+            continue
+        path = row.get("path")
+        rank = row.get("rank_before")
+        if not isinstance(path, str) or rank is None:
+            continue
+        # Keep the first occurrence for defensive handling of malformed
+        # duplicate-path traces; the matcher emits the earliest raw rank first.
+        rank_by_path.setdefault(path, int(rank))
+    required_ranks = [rank_by_path[path] for path in required if path in rank_by_path]
+    mean_rank = _ratio(sum(required_ranks), len(required_ranks)) if required_ranks else None
+    top1 = sum(1 for rank in required_ranks if rank <= 1)
+    top3 = sum(1 for rank in required_ranks if rank <= 3)
+    top6 = sum(1 for rank in required_ranks if rank <= 6)
+    required_with_rank = len(required_ranks)
+    mrr = (
+        _ratio(sum(1.0 / rank for rank in required_ranks), len(required_ranks))
+        if required_ranks
+        else None
+    )
     return {
         "id": task["id"],
         "repository": task["repository"],
@@ -321,8 +358,18 @@ def _task_metrics(
         "file_reduction": _reduction(selected["doc_count"], baseline["doc_count"]),
         "required_recall": _ratio(len(required_hits), len(required_set)),
         "precision": _ratio(len(relevant_hits), len(selected_set)),
+        "oracle_precision": oracle_precision,
+        "oracle_recall": oracle_recall,
+        "oracle_normalized_precision": normalized_precision,
+        "selected_count": selected_count,
         "required_count": len(required_set),
         "selected_relevant_count": len(relevant_hits),
+        "required_ranked_count": required_with_rank,
+        "required_mean_rank": mean_rank,
+        "required_top1_count": top1,
+        "required_top3_count": top3,
+        "required_top6_count": top6,
+        "required_mrr": mrr,
         "route_latency_ms": round(route_latency_ms, 6),
     }
 
@@ -337,7 +384,39 @@ def _aggregate(records: list[dict[str, Any]], cold_latencies: list[float]) -> di
     required_count = sum(int(record["required_count"]) for record in records)
     required_hits = sum(len(record["required_hits"]) for record in records)
     relevant_hits = sum(int(record["selected_relevant_count"]) for record in records)
+    oracle_relevant_selected = sum(
+        min(
+            int(record.get("selected_count", 0)),
+            len(set(record.get("required_docs", [])) | set(record.get("acceptable_docs", []))),
+        )
+        for record in records
+    )
+    actual_precision_sum = sum(
+        float(record.get("precision", 0.0)) * int(record.get("selected_count", 0))
+        for record in records
+    )
+    oracle_precision_sum = sum(
+        float(record.get("oracle_precision", 0.0)) * int(record.get("selected_count", 0))
+        for record in records
+    )
+    oracle_recall_sum = sum(
+        float(record.get("oracle_recall", 0.0)) * int(record.get("required_count", 0))
+        for record in records
+    )
     route_latencies = [float(record["route_latency_ms"]) for record in records]
+    ranked_counts = [
+        int(record["required_ranked_count"]) for record in records
+        if int(record.get("required_ranked_count", 0)) > 0
+    ]
+    rank_sum = sum(
+        float(record["required_mean_rank"]) * int(record["required_ranked_count"])
+        for record in records
+        if record.get("required_mean_rank") is not None
+        and int(record.get("required_ranked_count", 0)) > 0
+    )
+    top1_total = sum(int(record["required_top1_count"]) for record in records)
+    top3_total = sum(int(record["required_top3_count"]) for record in records)
+    top6_total = sum(int(record["required_top6_count"]) for record in records)
     return {
         "task_count": len(records),
         "failed_task_count": sum(record.get("status") != "ok" for record in records),
@@ -355,6 +434,30 @@ def _aggregate(records: list[dict[str, Any]], cold_latencies: list[float]) -> di
         "required_recall": _ratio(required_hits, required_count),
         "selected_relevant_count": relevant_hits,
         "precision": _ratio(relevant_hits, selected_docs),
+        "oracle_precision": _ratio(oracle_relevant_selected, selected_docs),
+        "oracle_recall": _ratio(oracle_recall_sum, required_count),
+        "oracle_normalized_precision": _ratio(actual_precision_sum, oracle_precision_sum),
+        "required_ranked_count": sum(ranked_counts),
+        "required_mean_rank": (
+            _ratio(rank_sum, sum(ranked_counts)) if ranked_counts else None
+        ),
+        "required_top1_rate": _ratio(top1_total, sum(ranked_counts)),
+        "required_top3_rate": _ratio(top3_total, sum(ranked_counts)),
+        "required_top6_rate": _ratio(top6_total, sum(ranked_counts)),
+        "required_mrr": (
+            _ratio(
+                sum(
+                    float(record["required_mrr"])
+                    * int(record["required_ranked_count"])
+                    for record in records
+                    if record.get("required_mrr") is not None
+                    and int(record.get("required_ranked_count", 0)) > 0
+                ),
+                sum(ranked_counts),
+            )
+            if ranked_counts
+            else None
+        ),
         "cold_scan_latency_ms": {
             "samples": [round(value, 6) for value in cold_latencies],
             "median": _median(cold_latencies),
@@ -433,9 +536,25 @@ def _write_outputs(
         _write_csv(directory / "task-results.csv", records)
 
 
-def run(run_id: str, dataset: str = "diagnostic") -> tuple[dict[str, Any], int]:
+def run(
+    run_id: str,
+    dataset: str = "diagnostic",
+    ranking_mode: str = "full",
+    ranking_overrides: dict[str, float] | None = None,
+) -> tuple[dict[str, Any], int]:
     if dataset not in DATASET_FILES:
         raise ValueError(f"unknown benchmark dataset: {dataset}")
+    if ranking_mode not in {
+        "structural",
+        "bm25",
+        "raw_bm25",
+        "full",
+        "bounded_bm25",
+        "rrf",
+    }:
+        raise ValueError(
+            "unsupported ranking mode"
+        )
     repos_file, tasks_file, results_root = DATASET_FILES[dataset]
     expected_repositories, expected_tasks = (3, 15) if dataset == "diagnostic" else (2, 10)
     repos, tasks = _validate_definitions(
@@ -489,10 +608,24 @@ def run(run_id: str, dataset: str = "diagnostic") -> tuple[dict[str, Any], int]:
                 baseline_paths = _baseline_paths(project)
                 baseline = _document_stats(workspace, baseline_paths)
                 task_records: list[dict[str, Any]] = []
+                # V0.5 ranking diagnostics need the raw per-document trace.
+                # Use the production matcher directly (same code path as
+                # server.get_project_context) with trace enabled.
+                from scanners.context_matcher import ContextMatcher
+
+                matcher_settings = server._load_settings()
+                if ranking_overrides:
+                    matcher_settings = json.loads(json.dumps(matcher_settings))
+                    matcher_settings.setdefault("index", {}).update(
+                        ranking_overrides
+                    )
+                benchmark_matcher = ContextMatcher(
+                    matcher_settings, ranking_mode=ranking_mode
+                )
                 for task in tasks_by_repo[repo["id"]]:
                     route_started = time.perf_counter()
                     try:
-                        route = server.get_project_context(str(workspace), task["task"])
+                        route = benchmark_matcher.trace_match(project, task["task"])
                         route_latency_ms = (time.perf_counter() - route_started) * 1000
                         selected = _document_stats(workspace, route.get("relevant_files", []))
                         record = _task_metrics(task, route, baseline, selected, route_latency_ms)
@@ -525,8 +658,18 @@ def run(run_id: str, dataset: str = "diagnostic") -> tuple[dict[str, Any], int]:
                             "file_reduction": 0.0,
                             "required_recall": 0.0,
                             "precision": 0.0,
+                            "oracle_precision": 0.0,
+                            "oracle_recall": 0.0,
+                            "oracle_normalized_precision": 0.0,
+                            "selected_count": 0,
                             "required_count": len(task["required_docs"]),
                             "selected_relevant_count": 0,
+                            "required_ranked_count": 0,
+                            "required_mean_rank": None,
+                            "required_top1_count": 0,
+                            "required_top3_count": 0,
+                            "required_top6_count": 0,
+                            "required_mrr": None,
                             "route_latency_ms": round(route_latency_ms, 6),
                             "error": f"{type(exc).__name__}: {exc}",
                         }
@@ -570,6 +713,7 @@ def run(run_id: str, dataset: str = "diagnostic") -> tuple[dict[str, Any], int]:
     summary = {
         "schema_version": 1,
         "dataset": dataset,
+        "ranking_mode": ranking_mode,
         "run_id": run_id,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "definitions": definitions,
@@ -580,6 +724,7 @@ def run(run_id: str, dataset: str = "diagnostic") -> tuple[dict[str, Any], int]:
     raw = {
         "schema_version": 1,
         "dataset": dataset,
+        "ranking_mode": ranking_mode,
         "run_id": run_id,
         "generated_at": summary["generated_at"],
         "definitions": definitions,
@@ -604,12 +749,20 @@ def main() -> int:
         default="diagnostic",
         help="benchmark dataset to run (diagnostic is the default)",
     )
+    parser.add_argument(
+        "--ranking-mode",
+        choices=("structural", "bm25", "raw_bm25", "full", "bounded_bm25", "rrf"),
+        default="full",
+        help="ranking fusion mode",
+    )
     args = parser.parse_args()
     run_id = args.run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", run_id):
         parser.error("--run-id may contain only letters, numbers, dot, underscore, and hyphen")
     try:
-        summary, exit_code = run(run_id, dataset=args.dataset)
+        summary, exit_code = run(
+            run_id, dataset=args.dataset, ranking_mode=args.ranking_mode
+        )
     except Exception as exc:
         print(f"benchmark failed: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
