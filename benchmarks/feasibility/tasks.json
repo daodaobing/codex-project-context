@@ -1,0 +1,480 @@
+{
+  "version": 1,
+  "frozen": true,
+  "note": "Phase 1.5 feasibility suite. project-knowledge and known-hard tasks are copied from exposed benchmark ground truth; simple tasks use a verified single answer file.",
+  "tasks": [
+    {
+      "task_id": "click-01",
+      "repository": "click",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug a Click command that rejects option values and inspect parameter types and exception handling.",
+      "required_docs": [
+        "docs/parameters.md",
+        "docs/parameter-types.md",
+        "docs/exceptions.md"
+      ],
+      "acceptable_docs": [
+        "docs/options.md",
+        "docs/command-line-reference.md",
+        "README.md"
+      ]
+    },
+    {
+      "task_id": "click-02",
+      "repository": "click",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add nested Click commands and groups while preserving the existing command invocation flow.",
+      "required_docs": [
+        "docs/commands-and-groups.md",
+        "docs/commands.md"
+      ],
+      "acceptable_docs": [
+        "docs/quickstart.md",
+        "docs/complex.md",
+        "docs/entry-points.md"
+      ]
+    },
+    {
+      "task_id": "click-03",
+      "repository": "click",
+      "task_class": "known_hard",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add shell completion to a Click command and expose the completion behavior for users.",
+      "required_docs": [
+        "docs/shell-completion.md",
+        "docs/options.md"
+      ],
+      "acceptable_docs": [
+        "docs/commands-and-groups.md",
+        "docs/command-line-reference.md",
+        "docs/api.md"
+      ]
+    },
+    {
+      "task_id": "click-04",
+      "repository": "click",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Support file paths, prompts, and environment-backed options in a Click command.",
+      "required_docs": [
+        "docs/handling-files.md",
+        "docs/prompts.md",
+        "docs/options.md"
+      ],
+      "acceptable_docs": [
+        "docs/parameters.md",
+        "docs/quickstart.md",
+        "README.md"
+      ]
+    },
+    {
+      "task_id": "click-05",
+      "repository": "click",
+      "task_class": "known_hard",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Understand Click's standalone command lifecycle and extension points before changing a complex CLI.",
+      "required_docs": [
+        "docs/advanced.md",
+        "docs/standalone-apps.md",
+        "docs/extending-click.md"
+      ],
+      "acceptable_docs": [
+        "docs/design-opinions.md",
+        "docs/api.md",
+        "README.md"
+      ]
+    },
+    {
+      "task_id": "uvicorn-01",
+      "repository": "uvicorn",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug an ASGI lifespan failure and event-loop behavior during application startup and shutdown.",
+      "required_docs": [
+        "docs/concepts/lifespan.md",
+        "docs/concepts/event-loop.md"
+      ],
+      "acceptable_docs": [
+        "docs/server-behavior.md",
+        "docs/settings.md",
+        "README.md"
+      ]
+    },
+    {
+      "task_id": "uvicorn-02",
+      "repository": "uvicorn",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add WebSocket support and request logging behavior to an ASGI server deployment.",
+      "required_docs": [
+        "docs/concepts/websockets.md",
+        "docs/concepts/logging.md"
+      ],
+      "acceptable_docs": [
+        "docs/server-behavior.md",
+        "docs/settings.md",
+        "docs/concepts/asgi.md"
+      ]
+    },
+    {
+      "task_id": "uvicorn-03",
+      "repository": "uvicorn",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Change HTTP protocol selection and server settings for an ASGI application without breaking request handling.",
+      "required_docs": [
+        "docs/concepts/http-protocols.md",
+        "docs/settings.md"
+      ],
+      "acceptable_docs": [
+        "docs/server-behavior.md",
+        "docs/concepts/asgi.md",
+        "docs/index.md"
+      ]
+    },
+    {
+      "task_id": "gin-01",
+      "repository": "gin",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug a Gin route or middleware failure and verify how requests flow through the router.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    },
+    {
+      "task_id": "gin-02",
+      "repository": "gin",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add request binding and validation for a Gin endpoint while preserving JSON and form behavior.",
+      "required_docs": [
+        "docs/doc.md"
+      ],
+      "acceptable_docs": [
+        "README.md"
+      ]
+    },
+    {
+      "task_id": "axios-h01",
+      "repository": "axios",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Investigate why an aborted Axios request is reported as a generic failure and distinguish AbortController cancellation from Axios error handling.",
+      "required_docs": [
+        "docs/pages/advanced/cancellation.md",
+        "docs/pages/advanced/error-handling.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/testing.md",
+        "docs/pages/advanced/api-reference.md"
+      ]
+    },
+    {
+      "task_id": "axios-h02",
+      "repository": "axios",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add authentication headers and request or response interceptors while keeping credentials scoped to an Axios instance.",
+      "required_docs": [
+        "docs/pages/advanced/authentication.md",
+        "docs/pages/advanced/interceptors.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/headers.md",
+        "docs/pages/advanced/config-defaults.md"
+      ]
+    },
+    {
+      "task_id": "axios-h04",
+      "repository": "axios",
+      "task_class": "known_hard",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Document a typed Axios client and safely narrow AxiosError values in TypeScript catch blocks.",
+      "required_docs": [
+        "docs/pages/advanced/type-script.md",
+        "docs/pages/advanced/api-reference.md"
+      ],
+      "acceptable_docs": [
+        "docs/pages/advanced/error-handling.md",
+        "docs/pages/getting-started/first-steps.md"
+      ]
+    },
+    {
+      "task_id": "catch2-h01",
+      "repository": "catch2",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug test diagnostics that are missing per-section logging and consult the FAQ for global setup and cleanup behavior.",
+      "required_docs": [
+        "docs/logging.md",
+        "docs/faq.md"
+      ],
+      "acceptable_docs": [
+        "docs/event-listeners.md",
+        "docs/test-cases-and-sections.md"
+      ]
+    },
+    {
+      "task_id": "catch2-h03",
+      "repository": "catch2",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Expose command-line reporter selection and custom reporter output for a continuous-integration test run.",
+      "required_docs": [
+        "docs/command-line.md",
+        "docs/reporters.md"
+      ],
+      "acceptable_docs": [
+        "docs/reporter-events.md",
+        "docs/configuration.md"
+      ]
+    },
+    {
+      "task_id": "ruff-h01",
+      "repository": "ruff",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug why a Ruff lint rule is not being applied to a file and how to check the enabled rules and per-file exceptions.",
+      "required_docs": [
+        "docs/linter.md",
+        "docs/configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/faq.md",
+        "docs/preview.md"
+      ]
+    },
+    {
+      "task_id": "ruff-h02",
+      "repository": "ruff",
+      "task_class": "known_hard",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add a new formatter option to a project and understand how the formatter interacts with the linter.",
+      "required_docs": [
+        "docs/formatter.md",
+        "docs/formatter/black.md"
+      ],
+      "acceptable_docs": [
+        "docs/configuration.md",
+        "docs/faq.md"
+      ]
+    },
+    {
+      "task_id": "httpx-h01",
+      "repository": "httpx",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug an HTTPX request that raises a timeout exception and understand how timeouts are configured per request and per client.",
+      "required_docs": [
+        "docs/advanced/timeouts.md",
+        "docs/exceptions.md"
+      ],
+      "acceptable_docs": [
+        "docs/advanced/clients.md",
+        "docs/api.md"
+      ]
+    },
+    {
+      "task_id": "httpx-h04",
+      "repository": "httpx",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Understand HTTPX transport architecture before adding a custom transport or async backend.",
+      "required_docs": [
+        "docs/advanced/transports.md",
+        "docs/advanced/extensions.md"
+      ],
+      "acceptable_docs": [
+        "docs/async.md",
+        "docs/advanced/clients.md"
+      ]
+    },
+    {
+      "task_id": "okhttp-h01",
+      "repository": "okhttp",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug why an OkHttp request is slower than expected and locate the connection setup and event timing details.",
+      "required_docs": [
+        "docs/features/connections.md",
+        "docs/features/events.md"
+      ],
+      "acceptable_docs": [
+        "docs/features/calls.md",
+        "docs/features/https.md"
+      ]
+    },
+    {
+      "task_id": "okhttp-h04",
+      "repository": "okhttp",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Use the OkHttp public API to build a client, create a request, and read the response body.",
+      "required_docs": [
+        "docs/features/calls.md",
+        "docs/features/connections.md"
+      ],
+      "acceptable_docs": [
+        "docs/recipes.md",
+        "docs/features/interceptors.md"
+      ]
+    },
+    {
+      "task_id": "jest-h01",
+      "repository": "jest",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Debug why a Jest test that uses fake timers is flaky and understand how to set up and tear down timer mocks.",
+      "required_docs": [
+        "docs/TimerMocks.md",
+        "docs/SetupAndTeardown.md"
+      ],
+      "acceptable_docs": [
+        "docs/JestObjectAPI.md",
+        "docs/Troubleshooting.md"
+      ]
+    },
+    {
+      "task_id": "jest-h02",
+      "repository": "jest",
+      "task_class": "known_hard",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Add module mocking to a Jest test suite to stub out a dependency and control its return values.",
+      "required_docs": [
+        "docs/MockFunctions.md",
+        "docs/ManualMocks.md"
+      ],
+      "acceptable_docs": [
+        "docs/MockFunctionAPI.md",
+        "docs/BypassingModuleMocks.md"
+      ]
+    },
+    {
+      "task_id": "jest-h03",
+      "repository": "jest",
+      "task_class": "project_knowledge",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Configure a Jest test environment to use jsdom instead of node and set per-file environment options.",
+      "required_docs": [
+        "docs/TestEnvironment.md",
+        "docs/Configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/EnvironmentVariables.md",
+        "docs/CLI.md"
+      ]
+    },
+    {
+      "task_id": "jest-h05",
+      "repository": "jest",
+      "task_class": "known_hard",
+      "project_context_expected": true,
+      "oracle_type": "required_docs",
+      "task": "Understand how Jest transforms code and runs tests in a project with TypeScript or JSX before adding a custom transformer.",
+      "required_docs": [
+        "docs/CodeTransformation.md",
+        "docs/Configuration.md"
+      ],
+      "acceptable_docs": [
+        "docs/Architecture.md",
+        "docs/JestPlatform.md"
+      ]
+    },
+    {
+      "task_id": "simple-01",
+      "repository": "gin",
+      "task_class": "simple",
+      "project_context_expected": false,
+      "oracle_type": "single_file",
+      "task": "Find the exact version string declared in the project package metadata.",
+      "required_docs": [],
+      "acceptable_docs": [],
+      "answer_file": "README.md"
+    },
+    {
+      "task_id": "simple-02",
+      "repository": "uvicorn",
+      "task_class": "simple",
+      "project_context_expected": false,
+      "oracle_type": "single_file",
+      "task": "What is the default value of the log-level setting?",
+      "required_docs": [],
+      "acceptable_docs": [],
+      "answer_file": "docs/settings.md"
+    },
+    {
+      "task_id": "simple-03",
+      "repository": "click",
+      "task_class": "simple",
+      "project_context_expected": false,
+      "oracle_type": "single_file",
+      "task": "List the command-line options shown in the quickstart example.",
+      "required_docs": [],
+      "acceptable_docs": [],
+      "answer_file": "docs/quickstart.md"
+    },
+    {
+      "task_id": "simple-04",
+      "repository": "catch2",
+      "task_class": "simple",
+      "project_context_expected": false,
+      "oracle_type": "single_file",
+      "task": "What is the include directive to use Catch2 in a single-file test?",
+      "required_docs": [],
+      "acceptable_docs": [],
+      "answer_file": "README.md"
+    },
+    {
+      "task_id": "simple-05",
+      "repository": "axios",
+      "task_class": "simple",
+      "project_context_expected": false,
+      "oracle_type": "single_file",
+      "task": "What HTTP verb appears in the minimal request example in the first-steps docs?",
+      "required_docs": [],
+      "acceptable_docs": [],
+      "answer_file": "docs/pages/getting-started/first-steps.md"
+    },
+    {
+      "task_id": "simple-06",
+      "repository": "httpx",
+      "task_class": "simple",
+      "project_context_expected": false,
+      "oracle_type": "single_file",
+      "task": "What is the first client example shown in the quickstart?",
+      "required_docs": [],
+      "acceptable_docs": [],
+      "answer_file": "docs/quickstart.md"
+    }
+  ]
+}
