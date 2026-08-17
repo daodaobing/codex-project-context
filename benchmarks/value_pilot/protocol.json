@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "name": "Project Context Incremental Value Pilot V1",
+  "frozen": true,
+  "freeze_time": "2026-08-14T22:45:00+08:00",
+  "design": "12 tasks x 3 arms = 36 independent runs; plus 6-run dry run (2 tasks x 3 arms) executed first",
+  "arms": {
+    "A": {
+      "name": "Native Codex",
+      "prompt_suffix": "",
+      "note": "Task prompt only. No project-knowledge hints, no tool mentions."
+    },
+    "B": {
+      "name": "Intent-aware Native",
+      "prompt_suffix": "If project-level design, configuration, conventions, or documentation may affect this task, recover that context first and verify it against the source code before making the change.",
+      "note": "Generic intent hint only; no tool/MCP/skill mentions."
+    },
+    "C": {
+      "name": "Candidate-assisted",
+      "prompt_suffix": "If project-level design, configuration, conventions, or documentation may affect this task, recover that context first and verify it against the source code before making the change. For project-level knowledge recovery, a candidate retrieval tool is available. Use it when useful, then selectively read relevant files and verify against source code.",
+      "note": "Arm B hint + fixed non-task-specific tool availability statement. Identical for all C runs."
+    }
+  },
+  "metrics_priority": {
+    "P0": "Project Constraint Compliance (T3/T4; PASS/FAIL/N/A per task)",
+    "P1": "Task Success (functional correctness + validation commands)",
+    "P2": "Incorrect Change / Rework (wrong-direction rate, rework rate)",
+    "P3": "Exploration Cost (tool calls, search/read counts, docs read, test runs, failed commands)",
+    "P4": "Provider Context / Token (input, cache read, uncached input, output; measured from usage.jsonl time-window aggregation; unavailable fields reported as unavailable; chars/4 never used)",
+    "P5": "Latency (cold vs warm; candidate retrieval latency separated from indexing overhead)"
+  },
+  "candidate_metrics_arm_c_only": [
+    "Candidate Adoption Rate",
+    "Candidate Read Ratio",
+    "Candidate Selection Recall (when frozen required knowledge docs exist)",
+    "All-Available-Required-Selected",
+    "Non-Candidate Escape Rate",
+    "Repeated Candidate Read Rate"
+  ],
+  "attribution": {
+    "A_to_B": "Intent Awareness Value",
+    "B_to_C": "Candidate Retrieval Incremental Value",
+    "A_to_C": "Full Project Context Workflow Value"
+  },
+  "go_no_go": {
+    "enter_formal_benchmark_if_any": [
+      "A. Quality Value: T4 constraint violations significantly lower than Native",
+      "B. Context Efficiency: T3/T4 uncached context reduction >= 25% with no Task Success drop",
+      "C. Exploration Efficiency: T3/T4 ineffective search/read loops reduction >= 30%"
+    ],
+    "must_also_hold": [
+      "no clear workflow regression on T1",
+      "no clear Task Success drop",
+      "no severe false adoption / over-reading"
+    ],
+    "weak_verdict_if_only": "token -5%, one fewer file read, same task success",
+    "verdicts": ["A. Strong Incremental Value", "B. Narrow Incremental Value", "C. Weak / No Incremental Value"]
+  },
+  "cost_protection": {
+    "dry_run": "6 runs (2 tasks x 3 arms) first; fix harness bugs only; re-freeze protocol hash after fixes",
+    "stop_if": "dry run cost abnormally high (>15M total tokens for the 6 runs) -> stop and report; never run unbounded",
+    "execution": "sub-agents spawned with fork_turns=none (context-free), one run per isolated workspace copy; serial execution"
+  },
+  "isolation": {
+    "workspace": "independent clone per run under benchmarks/results/pilot-runs/<task_id>/<arm>/ (gitignored)",
+    "starting_state": "same repo commit for all three arms of a task; fresh clone each run",
+    "no_cross_arm": "no run may read another run's workspace or results",
+    "no_contamination": "prompts contain no benchmark terms, no ground truth, no expected docs"
+  },
+  "repos": {
+    "click": "9c4dfda",
+    "uvicorn": "5c560da",
+    "httpx": "b5addb6",
+    "axios": "ba98559"
+  },
+  "frozen_hashes": {
+    "tasks_json": "96CC7E2B361EF4D54CBEEA5ADF7162CBD59A2A68838457D21B4AE7816B0819A0",
+    "protocol_json": "5F242C6624B56A283165DF7AD87B39B31BA06EF24632D8A91A79ECE92A8FBEBF"
+  }
+}

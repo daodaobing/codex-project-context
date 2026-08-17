@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "frozen": true,
+  "freeze_time": "2026-08-14T22:40:00+08:00",
+  "note": "Pilot V1 ground truth. Frozen before any A/B/C run. No benchmark terms, no tool names, no ground-truth hints in prompts.",
+  "tasks": [
+    {
+      "task_id": "t1-1-click-confirm",
+      "repository": "click",
+      "commit": "9c4dfda",
+      "category": "T1",
+      "prompt": "In this repository, the confirm() function in src/click/termui.py currently raises click.exceptions.Abort when the abort parameter is true and the user answers negatively. Change the behavior so that a negative answer never raises Abort: confirm() must return False instead. Keep the return value True for positive answers and keep the default-value and invalid-input handling unchanged. Update the docstring to match. If existing tests assert the old raising behavior, adjust the tests to assert the new behavior.",
+      "functional_requirements": [
+        "confirm(abort=True) with a negative answer returns False and does not raise",
+        "confirm(abort=True) with a positive answer returns True",
+        "default value and invalid-input retry behavior unchanged"
+      ],
+      "project_constraints": [],
+      "required_knowledge": [],
+      "acceptable_implementation": "Return False instead of raising Abort in the abort branch; docstring updated; related tests updated",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -c \"import io,sys; from click.termui import confirm; sys.stdin=io.StringIO('no\\n'); assert confirm('q', abort=True) is False\"",
+        "python -m pytest tests/test_termui.py -q -x"
+      ],
+      "expected_files_or_areas": ["src/click/termui.py", "tests/test_termui.py"]
+    },
+    {
+      "task_id": "t1-2-uvicorn-400body",
+      "repository": "uvicorn",
+      "commit": "5c560da",
+      "category": "T1",
+      "prompt": "In this repository, when the h11 HTTP implementation rejects a malformed request it calls send_400_response(msg), but the 400 response it sends has an empty body: the msg argument is never written to the response. Fix this so the 400 response body contains the msg text (text/plain), while keeping the status code, content-type header and connection-close behavior unchanged.",
+      "functional_requirements": [
+        "400 response body contains the msg text",
+        "status 400, content-type text/plain; charset=utf-8, connection close preserved"
+      ],
+      "project_constraints": [],
+      "required_knowledge": [],
+      "acceptable_implementation": "Send an h11.Data event with the msg bytes after the h11.Response event in send_400_response",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -m pytest tests/test_http.py -q -k '400'",
+        "python scripts/verify_400_body.py"
+      ],
+      "expected_files_or_areas": ["uvicorn/protocols/http/h11_impl.py"]
+    },
+    {
+      "task_id": "t1-3-httpx-json-encoding",
+      "repository": "httpx",
+      "commit": "b5addb6",
+      "category": "T1",
+      "prompt": "In this repository, Response.json() in httpx/_models.py accepts arbitrary kwargs but always parses self.content bytes directly. Add an optional encoding parameter (default None) so callers can decode non-UTF-8 JSON payloads: when encoding is provided, decode self.content with that encoding before parsing. When encoding is None, keep the current behavior exactly. Update the docstring.",
+      "functional_requirements": [
+        "Response.json(encoding='latin-1') parses content decoded as latin-1",
+        "Response.json() without encoding keeps current behavior",
+        "invalid JSON still raises json.JSONDecodeError"
+      ],
+      "project_constraints": [],
+      "required_knowledge": [],
+      "acceptable_implementation": "encoding parameter decoded via self.content.decode(encoding) before jsonlib.loads",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -c \"from httpx import Response; r=Response(200, content=b'{\\\"a\\\": \\\"caf\\xe9\\\"}'); assert r.json(encoding='latin-1')['a']=='caf\\xe9'\"",
+        "python -m pytest tests/models/test_response.py -q -k 'json'"
+      ],
+      "expected_files_or_areas": ["httpx/_models.py"]
+    },
+    {
+      "task_id": "t2-1-axios-transform-undefined",
+      "repository": "axios",
+      "commit": "ba98559",
+      "category": "T2",
+      "prompt": "In this repository, lib/core/transformData.js runs each transform function and overwrites data with its return value. If a transform function returns undefined, data becomes undefined and every later function in the chain receives undefined. Change the chain so that when a transform function returns undefined, the previous data value is kept (the undefined result is skipped). Keep the behavior identical for functions that return a defined value. Add a unit test covering the skip-undefined case.",
+      "functional_requirements": [
+        "transform function returning undefined does not clobber previous data",
+        "later transform functions receive the kept value",
+        "normal transform functions behave as before"
+      ],
+      "project_constraints": [],
+      "required_knowledge": [],
+      "acceptable_implementation": "Only assign data when the function result is not undefined",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "node --test test/specs/unit/transformData.spec.js 2>&1 || node test/specs/unit/transformData.spec.js",
+        "node -e \"const t=require('./lib/core/transformData.js').default; ...\""
+      ],
+      "expected_files_or_areas": ["lib/core/transformData.js", "test/"]
+    },
+    {
+      "task_id": "t2-2-httpx-multipart-filename",
+      "repository": "httpx",
+      "commit": "b5addb6",
+      "category": "T2",
+      "prompt": "In this repository, httpx/_multipart.py builds multipart form data. When a file object (not a tuple) is passed, the filename is normalized with Path(name).name, but when the 2-tuple/3-tuple/4-tuple form is used, the filename is used verbatim. Make the tuple forms normalize the filename the same way (take the basename when the filename contains path separators), keeping the file-object behavior unchanged. Update existing tests or add coverage for the tuple-with-path case.",
+      "functional_requirements": [
+        "files={'f': ('dir/sub/file.txt', b'x')} emits filename=\"file.txt\"",
+        "file-object form behavior unchanged",
+        "no filename provided stays filename-less"
+      ],
+      "project_constraints": [],
+      "required_knowledge": [],
+      "acceptable_implementation": "Apply Path(str(filename)).name normalization to the tuple forms in _multipart.py",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -c \"import httpx; b=httpx._multipart.encode_multipart_data({'f':('dir/sub/file.txt',b'x')},None).read(); assert b'file.txt' in b and b'dir/sub' not in b\"",
+        "python -m pytest tests/test_multipart.py -q"
+      ],
+      "expected_files_or_areas": ["httpx/_multipart.py"]
+    },
+    {
+      "task_id": "t2-3-httpx-headers-setdefault",
+      "repository": "httpx",
+      "commit": "b5addb6",
+      "category": "T2",
+      "prompt": "In this repository, the Headers class in httpx/_models.py implements a dict-like API but has no setdefault method. Add setdefault(key, default=None) with dict semantics: if the key is absent, set it to the default value and return it; if present, return the existing value without changing it. Headers are case-insensitive, so a setdefault on 'Content-Type' must also satisfy a later get('content-type'). Add a unit test.",
+      "functional_requirements": [
+        "setdefault sets and returns default when key absent",
+        "setdefault returns existing value and does not overwrite when key present",
+        "case-insensitive behavior consistent with get"
+      ],
+      "project_constraints": [],
+      "required_knowledge": [],
+      "acceptable_implementation": "Implement setdefault in Headers using the existing case-insensitive lookup",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -c \"from httpx import Headers; h=Headers(); assert h.setdefault('X-Test','a')=='a'; assert h.setdefault('x-test','b')=='a'; assert h['X-Test']=='a'\"",
+        "python -m pytest tests/test_headers.py -q"
+      ],
+      "expected_files_or_areas": ["httpx/_models.py", "tests/test_headers.py"]
+    },
+    {
+      "task_id": "t3-1-click-prompt-required",
+      "repository": "click",
+      "commit": "9c4dfda",
+      "category": "T3",
+      "prompt": "In this repository, src/click/core.py Option.process_value decides whether to prompt with the condition (self.required or self.prompt_required). Because required=True forces the prompt, an option declared with prompt=True, prompt_required=False, required=True still prompts for input in non-interactive environments, where the prompt blocks or aborts instead of producing a proper missing-parameter error. Change the condition so that prompt_required=False means the option never prompts: value processing falls through to the normal missing-parameter error path (UsageError/MissingParameter) when the value is absent, while prompt_required=True keeps prompting. Update affected tests and the option docstring/help text.",
+      "functional_requirements": [
+        "prompt_required=False + required=True + missing value in non-interactive run produces MissingParameter (no prompt, no hang)",
+        "prompt_required=True keeps prompting when value missing",
+        "interactive behavior for prompt_required=True unchanged"
+      ],
+      "project_constraints": [],
+      "required_knowledge": ["docs/options.md prompt_required section"],
+      "acceptable_implementation": "Change the prompt gate to self.prompt_required only; adjust tests",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -c \"from click.testing import CliRunner; ...\"",
+        "python -m pytest tests/test_options.py -q -k 'prompt'"
+      ],
+      "expected_files_or_areas": ["src/click/core.py", "tests/test_options.py"]
+    },
+    {
+      "task_id": "t3-2-uvicorn-proxy-headers",
+      "repository": "uvicorn",
+      "commit": "5c560da",
+      "category": "T3",
+      "prompt": "In this repository, uvicorn/middleware/proxy_headers.py hard-codes the header names x-forwarded-proto and x-forwarded-for. Some deployments use different names (for example X-Real-IP / X-Scheme). Extend ProxyHeadersMiddleware to accept configurable header names via constructor parameters (forwarded_proto_header='x-forwarded-proto', forwarded_for_header='x-forwarded-for'), keep the default behavior identical, and wire Config so users can pass the names through Config(proxy_headers=True, forwarded_proto_header=..., forwarded_for_header=...). Update the middleware tests.",
+      "functional_requirements": [
+        "custom proto/for header names honored when configured",
+        "default names behavior byte-identical to current",
+        "Config accepts and forwards the new options"
+      ],
+      "project_constraints": [],
+      "required_knowledge": ["docs/deployment.md running behind a proxy"],
+      "acceptable_implementation": "Constructor params + Config passthrough with defaults",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -m pytest tests/middleware/test_proxy_headers.py -q",
+        "python -m pytest tests/test_config.py -q -k proxy"
+      ],
+      "expected_files_or_areas": ["uvicorn/middleware/proxy_headers.py", "uvicorn/config.py"]
+    },
+    {
+      "task_id": "t3-3-uvicorn-lifespan-off",
+      "repository": "uvicorn",
+      "commit": "5c560da",
+      "category": "T3",
+      "prompt": "In this repository, uvicorn/lifespan/on.py sets should_exit on application startup failure only when (startup_failed) or (error_occurred and config.lifespan == 'on'). With --lifespan off the flag is never set, so an application that raises during startup is silently kept alive and continues serving requests that cannot work. Change the behavior so that an application exception during startup always marks should_exit = True (regardless of lifespan mode), while lifespan protocol failures (startup.failed messages) keep the existing lifespan=='on' gating. Update tests.",
+      "functional_requirements": [
+        "app raising in lifespan off mode during startup sets should_exit",
+        "app raising in lifespan on mode still sets should_exit",
+        "clean startup in off mode does not set should_exit"
+      ],
+      "project_constraints": [],
+      "required_knowledge": ["docs/lifespan.md lifespan off semantics"],
+      "acceptable_implementation": "Extend the startup error branch to include lifespan off for app exceptions only",
+      "forbidden_implementation": [],
+      "validation_commands": [
+        "python -m pytest tests/test_main.py -q -k lifespan",
+        "python -m pytest tests/test_lifespan.py -q"
+      ],
+      "expected_files_or_areas": ["uvicorn/lifespan/on.py", "tests/"]
+    },
+    {
+      "task_id": "t4-1-click-port-validation",
+      "repository": "click",
+      "commit": "9c4dfda",
+      "category": "T4",
+      "prompt": "In this repository, examples/validation/validation.py demonstrates parameter validation conventions: errors are raised as click.BadParameter so the CLI prints a usage-style error to stderr and exits with code 2. Add a new --port option (integer 1-65535) to the cli command, validating it with click.IntRange(1, 65535). Preserve the existing convention: invalid input must produce the click usage-error shape (BadParameter, exit code 2, no Python traceback). Verify with the CliRunner and a real invocation.",
+      "functional_requirements": [
+        "--port accepted for 1..65535",
+        "out-of-range --port exits with code 2 and prints a usage-style message",
+        "no Python traceback on invalid input"
+      ],
+      "project_constraints": [
+        "CLI parameter errors must surface as click usage errors (BadParameter), never as an uncaught exception traceback"
+      ],
+      "required_knowledge": ["docs/parameters.md error handling", "examples/validation/validation.py conventions"],
+      "acceptable_implementation": "--port with type=click.IntRange(1, 65535); optional echo of the value",
+      "forbidden_implementation": [
+        "raising ValueError or letting an uncaught exception produce a traceback for invalid port input"
+      ],
+      "validation_commands": [
+        "python examples/validation/validation.py --port 99999; echo exit=$LASTEXITCODE",
+        "python -c \"from click.testing import CliRunner; from examples.validation.validation import cli; r=CliRunner().invoke(cli,['--port','0']); assert r.exit_code==2\""
+      ],
+      "expected_files_or_areas": ["examples/validation/validation.py"]
+    },
+    {
+      "task_id": "t4-2-uvicorn-lifespan-hang",
+      "repository": "uvicorn",
+      "commit": "5c560da",
+      "category": "T4",
+      "prompt": "In this repository, uvicorn/lifespan/on.py runs the ASGI lifespan protocol. When an application does not speak the lifespan protocol at all (it never sends lifespan.startup.complete or lifespan.startup.failed), the startup() method waits forever on self.startup_event, so the server hangs during startup. Add a bounded startup timeout: if the application has not completed (or failed) the lifespan startup handshake within a configurable number of seconds (default 30, Config parameter lifespan_timeout), log an error, mark startup as failed, and set should_exit = True so the server exits instead of hanging. Keep the protocol messages exactly as specified by the ASGI lifespan spec for the failure path. Update tests.",
+      "functional_requirements": [
+        "app not responding to lifespan.startup exits after the timeout instead of hanging",
+        "normal apps completing startup are unaffected",
+        "failure path emits the spec-correct lifespan failure handling (error log + should_exit)",
+        "Config exposes lifespan_timeout with default 30"
+      ],
+      "project_constraints": [
+        "Must follow the ASGI lifespan protocol: startup must end in complete or failed, never silently hang"
+      ],
+      "required_knowledge": ["docs/lifespan.md", "ASGI lifespan spec"],
+      "acceptable_implementation": "asyncio.wait_for on the startup event with timeout, treating timeout as startup_failed",
+      "forbidden_implementation": [
+        "ignoring the timeout and continuing to serve without a lifespan verdict"
+      ],
+      "validation_commands": [
+        "python -m pytest tests/test_lifespan.py -q -k 'timeout'",
+        "python scripts/verify_lifespan_timeout.py"
+      ],
+      "expected_files_or_areas": ["uvicorn/lifespan/on.py", "uvicorn/config.py", "tests/"]
+    },
+    {
+      "task_id": "t4-3-click-port-type",
+      "repository": "click",
+      "commit": "9c4dfda",
+      "category": "T4",
+      "prompt": "In this repository, click parameter types in src/click/types.py must reject invalid values through ParamType.fail() (which raises BadParameter and integrates with usage errors), not by raising arbitrary exceptions. Add a new PortType(ParamType) to src/click/types.py: it accepts integers 1..65535 and rejects everything else, with an error message that includes the allowed range. Rejection must go through self.fail() so the message is formatted as a click parameter error. Export it from the click package (types and __init__) and add unit tests.",
+      "functional_requirements": [
+        "PortType converts 1..65535",
+        "PortType rejects 0, 65536, non-numeric strings via fail()",
+        "error message includes the range 1-65535",
+        "exported from click.types and click"
+      ],
+      "project_constraints": [
+        "Parameter type validation must use the click type system (fail()/BadParameter), never a bare ValueError/TypeError escape"
+      ],
+      "required_knowledge": ["docs/parameters.md custom types", "src/click/types.py conventions"],
+      "acceptable_implementation": "PortType subclassing ParamType with convert() calling self.fail(...)",
+      "forbidden_implementation": [
+        "raising ValueError/TypeError from convert() for invalid input"
+      ],
+      "validation_commands": [
+        "python -c \"from click import PortType; ...\"",
+        "python -m pytest tests/test_types.py -q -k 'port'"
+      ],
+      "expected_files_or_areas": ["src/click/types.py", "src/click/__init__.py", "tests/test_types.py"]
+    }
+  ]
+}
